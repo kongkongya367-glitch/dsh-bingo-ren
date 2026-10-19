@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" role="img" aria-label="Bingo">
+  <defs>
+    <linearGradient id="bingo-plate" x1="6" y1="4" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#191C23"/>
+      <stop offset="1" stop-color="#0B0D11"/>
+    </linearGradient>
+    <linearGradient id="bingo-spark" x1="45" y1="13" x2="51" y2="21" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9DCBFF"/>
+      <stop offset="1" stop-color="#4F7FF0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#bingo-plate)"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="15.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.12"/>
+  <path d="M32 11 C34.4 24.2 39.8 29.6 53 32 C39.8 34.4 34.4 39.8 32 53 C29.6 39.8 24.2 34.4 11 32 C24.2 29.6 29.6 24.2 32 11 Z" fill="#F8F9FB"/>
+  <circle cx="47.5" cy="16.5" r="2.8" fill="url(#bingo-spark)"/>
+</svg>

@@ -1,0 +1,50 @@
+{
+  "name": "dsh-bingo-restart",
+  "version": "0.1.0",
+  "description": "Bottom-left Bingo button for DeepSeek Harness: one click in its panel restarts the whole desktop app, with new-plugin prompts, a keyboard shortcut and zero runtime dependencies.",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "dsh",
+    "restart",
+    "bingo",
+    "plugin-manager",
+    "desktop",
+    "electron"
+  ],
+  "license": "MIT",
+  "author": "Bingo Contributors",
+  "type": "module",
+  "main": "lib/index.js",
+  "icon": "./icon.svg",
+  "files": [
+    "lib",
+    "client",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "LICENSE",
+    "icon.svg",
+    "assets"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.0-rc.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-name/dsh-bingo-restart.git"
+  },
+  "homepage": "https://github.com/your-name/dsh-bingo-restart#readme",
+  "bugs": {
+    "url": "https://github.com/your-name/dsh-bingo-restart/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

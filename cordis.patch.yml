@@ -1,0 +1,7 @@
+# Bingo: a bottom-left restart button for DeepSeek Harness.
+# Inserted as one host plugin row; the package itself has no client module.
+- insert:
+    - id: dsh-bingo
+      name: dsh-bingo-restart
+      config:
+        enabled: true

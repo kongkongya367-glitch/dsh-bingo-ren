@@ -1,0 +1,17 @@
+# Dependencies and build output
+node_modules/
+*.tgz
+
+# Local-only research and verification material
+.research/
+verification/
+test/fixtures/tmp/
+.tmp/
+.testhome/
+
+# Tool scratch files
+*.log
+asar-probe.txt
+.edge-profile/
+.DS_Store
+Thumbs.db

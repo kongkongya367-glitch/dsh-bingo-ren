@@ -1,0 +1,21 @@
+# The published file set is defined by package.json "files".
+# This file is an extra guard so local-only material can never leak into the tarball.
+SPEC.md
+test/
+preview/
+.research/
+verification/
+.tmp/
+.testhome/
+node_modules/
+*.tgz
+scripts/
+market/
+PUBLISH.md
+CHANGELOG.md
+tools/
+asar-probe.cjs
+asar-probe.txt
+.gitignore
+.npmignore
+.edge-profile/

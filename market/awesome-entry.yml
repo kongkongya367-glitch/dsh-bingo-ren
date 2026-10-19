@@ -1,0 +1,15 @@
+# Template for an awesome-dsh-plugin submission.
+# Target path in the awesome-dsh-plugin/awesome-dsh-plugin repository:
+#   data/plugins/<owner>__<repo>.yml
+# Replace every <owner> / <repo> placeholder with the real GitHub repository
+# before opening the PR. Do not copy this comment block into the submitted file.
+url: https://github.com/<owner>/<repo>
+name: <owner>/<repo>
+category: ui
+description:
+  en: 'Adds a bottom-left Bingo button to DeepSeek Harness. Its panel restarts the whole desktop app in one click, and a centered dialog offers the same restart when a new plugin is detected while the app is running.'
+  zh: '在 DeepSeek Harness 左下角常驻 Bingo 按钮：在面板里一键重启整个桌面端；运行期间检测到新装插件时，弹出居中对话框询问是否立即重启。'
+
+# Optional: prebuilt tarball on a GitHub Release. Uncomment after a release exists.
+# The asset name must be version-free or the URL must pin a tag (see contributing.md).
+# tarball: https://github.com/<owner>/<repo>/releases/latest/download/dsh-bingo-restart.tgz
