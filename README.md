@@ -34,9 +34,11 @@ This one is a real Chromium (headless Edge) capture of preview/index.html made w
 
 ### Desktop app
 
+> The npm package is **not published yet**. Until it is, add the GitHub repository `https://github.com/kongkongya367-glitch/dsh-bingo-ren` in **Settings → Plugins → Add plugin** (the package ships prebuilt files), use the `dsh-bingo-ren-0.1.1.tgz` GitHub Release asset, or run the local installer. Once npm is published, enter `dsh-bingo-ren` directly.
+
 1. Open **Settings → Plugins**.
 2. Choose **Add plugin**.
-3. Enter `dsh-bingo-ren` and confirm.
+3. Enter `dsh-bingo-ren` (after npm publish) or the GitHub repository URL above and confirm.
 4. **Restart DeepSeek Harness once by hand** (quit and reopen it).
 
 This is the only supported way to install into the running desktop app: the app owns its `desktop` profile and rejects package operations against it from a separate CLI process. Do not use `dsh plugin --profile desktop …`; install through the app instead.
@@ -160,4 +162,4 @@ Optional cleanup: delete `~/.dsh/bingo/` (detection baseline, acknowledgements, 
 
 ---
 
-> **Release status:** Bingo is **not published to npm yet** and is **not listed** in the community plugin directory. The GitHub repository is `https://github.com/kongkongya367-glitch/dsh-bingo-ren`; npm publishing and the awesome-dsh-plugin PR still require the owner to sign in and run them. See `PUBLISH.md`.
+> **Release status:** The GitHub repository and `v0.1.1` Release are public: `https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/tag/v0.1.1`. Bingo is **not published to npm yet** and is **not listed** in the community directory (awesome-dsh-plugin CI requires the repository to be at least one day old; it was created at 2026-10-19 05:50 UTC). npm publishing and the market PR still require the owner to sign in. See `PUBLISH.md`.

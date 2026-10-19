@@ -1,6 +1,6 @@
 # Publishing Bingo
 
-This document is the release runbook. **No publish step in it has been executed.**
+This document is the release runbook. **GitHub is published; npm and the community listing are not.**
 Bingo is not on npm and is not listed in the community plugin directory.
 
 > Do not run `npm publish` from a shared session. Publish only after the release
@@ -11,14 +11,15 @@ Bingo is not on npm and is not listed in the community plugin directory.
 | Item | State |
 | --- | --- |
 | Package name | `dsh-bingo-ren` (chosen because `dsh-bingo` is already taken on npm) |
-| npm | **Not published** |
-| Community directory | **Not submitted**; draft only in `market/` |
-| Repository URL | `https://github.com/kongkongya367-glitch/dsh-bingo-ren` (set) |
+| npm | **Not published** (no npm login in this environment) |
+| Community directory | **Not submitted**; draft only in `market/` (repo must be 1 day old) |
+| Repository URL | `https://github.com/kongkongya367-glitch/dsh-bingo-ren` (pushed) |
+| GitHub release | `v0.1.1` published with `dsh-bingo-ren-0.1.1.tgz` asset |
 | Version | `0.1.1` |
 
-## 2. Replace the placeholders
+## 2. Remaining release actions
 
-Repository URLs are configured. Remaining release actions are npm sign-in/publish, tag, and the community PR:
+Repository URLs and the GitHub release are configured. Remaining actions are npm sign-in/publish and the community PR:
 
 | File | Field / text | Replace with |
 | --- | --- | --- |
@@ -127,14 +128,12 @@ Discover/plugin market follows the merge, not the npm publish.
 
 ## 7. After publishing
 
-- [ ] `npm view dsh-bingo-ren` shows the expected version and repository link
-- [ ] Fresh install into a self-test profile works
-- [ ] README "Release status" block is updated or removed
-- [ ] GitHub release `v0.1.1` created, with the screenshots and (optionally) a
-      version-free prebuilt tarball `dsh-bingo-ren.tgz`
-- [ ] `market/awesome-entry.yml` `tarball:` line uncommented only if that release
-      asset exists
-- [ ] Issue tracker and discussion links work
+- [ ] `npm view dsh-bingo-ren` shows the expected version and repository link (pending npm publish)
+- [x] Fresh install into a self-test profile works
+- [x] README "Release status" block updated to the GitHub repository/release and the npm gap
+- [x] GitHub release `v0.1.1` created with the tarball asset
+- [x] `market/awesome-entry.yml` `tarball:` points at the published release asset
+- [x] Issue tracker and discussion links work
 
 ## 8. If something is wrong
 

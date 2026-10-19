@@ -34,9 +34,11 @@ DeepSeek Harness（dsh）里常驻一枚安静的 **Bingo** 按钮，默认在�
 
 ### 桌面端
 
+> npm 包目前**尚未发布**。现在可以先在「设置 → 插件 → 添加插件」中输入 GitHub 仓库地址 `https://github.com/kongkongya367-glitch/dsh-bingo-ren`（包内已带构建产物）；npm 发布后可直接输入 `dsh-bingo-ren`。也可以通过 GitHub Release 的 `dsh-bingo-ren-0.1.1.tgz` 或本地安装脚本安装。
+
 1. 打开 **设置 → 插件**。
 2. 点 **添加插件**。
-3. 输入 `dsh-bingo-ren` 并确认。
+3. 输入 `dsh-bingo-ren`（npm 发布后）或上面 GitHub 仓库地址并确认。
 4. **手动重启一次 DeepSeek Harness**（退出后重新打开）。
 
 这是向运行中的桌面端安装的唯一受支持方式：应用独占自己的 `desktop` profile，并拒绝来自独立 CLI 进程的包操作。请勿使用 `dsh plugin --profile desktop …`，桌面端安装一律走应用内的插件页。
@@ -158,4 +160,4 @@ Bingo **不发起任何对外网络请求**。它只访问页面同源、走回�
 
 ---
 
-> **发布状态：** Bingo **尚未发布到 npm**，也**未被**社区插件目录收录。GitHub 仓库已配置为 `https://github.com/kongkongya367-glitch/dsh-bingo-ren`；npm 发布与 awesome-dsh-plugin PR 仍需所有者登录后执行。详见 `PUBLISH.md`。
+> **发布状态：** GitHub 仓库与 `v0.1.1` Release 已发布：`https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/tag/v0.1.1`。Bingo **尚未发布到 npm**，也**尚未**被社区插件目录收录（awesome-dsh-plugin 的 CI 要求仓库创建满 1 天，创建于 2026-10-19 05:50 UTC）。npm 发布与市场 PR 仍需所有者登录后执行。详见 `PUBLISH.md`。
