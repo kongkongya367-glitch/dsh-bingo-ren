@@ -52,6 +52,7 @@ try {
     'cordis.patch.yml',
     'README.md',
     'README.zh.md',
+    'README.en.md',
     'LICENSE',
     'icon.svg',
     'assets/icon-512.png'

@@ -1,7 +1,7 @@
 {
   "name": "dsh-bingo-ren",
-  "version": "0.1.2",
-  "description": "Draggable Bingo button for DeepSeek Harness: snaps to the nearest edge, restarts the whole desktop app in one click, and prompts when a new plugin is installed. Zero runtime dependencies.",
+  "version": "0.1.3",
+  "description": "给 DeepSeek Harness 添加可拖动的 Bingo 按钮：一键重启桌面端，自动提醒新安装的插件，支持边缘吸附、位置记忆和深浅色主题。零运行时依赖，无遥测。",
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
@@ -10,7 +10,10 @@
     "bingo",
     "plugin-manager",
     "desktop",
-    "electron"
+    "electron",
+    "重启",
+    "插件",
+    "插件提醒"
   ],
   "license": "MIT",
   "author": "Bingo Contributors",
@@ -23,6 +26,7 @@
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
+    "README.en.md",
     "LICENSE",
     "icon.svg",
     "assets"

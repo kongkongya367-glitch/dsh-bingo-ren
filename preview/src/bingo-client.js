@@ -6,7 +6,7 @@
 
   var VERSION = typeof window.__DSH_BINGO_VERSION__ === 'string' && window.__DSH_BINGO_VERSION__
     ? window.__DSH_BINGO_VERSION__
-    : '0.1.2';
+    : '0.1.3';
   var API = '/bingo';
   var CSS_URL = typeof window.__DSH_BINGO_CLIENT_CSS__ === 'string' && window.__DSH_BINGO_CLIENT_CSS__
     ? window.__DSH_BINGO_CLIENT_CSS__

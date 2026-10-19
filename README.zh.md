@@ -2,7 +2,7 @@
 
 在 DeepSeek Harness 中添加一个可拖动的 Bingo 按钮，支持整应用重启和新插件安装提醒。
 
-[English](README.md) · [GitHub Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)
+[English](README.en.md) · [版本与下载](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)
 
 ## 功能
 

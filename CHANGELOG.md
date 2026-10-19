@@ -1,70 +1,35 @@
-# Changelog
+# 更新记录
 
-All notable changes to this project are documented in this file.
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## 未发布
 
-## [Unreleased]
+暂无。
 
-Nothing yet.
+## 0.1.3 — 2026-10-19
 
-## [0.1.2] - 2026-10-19
+- 安装卡片和 npm 简介改为中文。
+- GitHub 默认 README 改为中文，英文说明移至 `README.en.md`。
+- 更新中文项目介绍、市场提交文案和版本信息。
 
-### Fixed
+## 0.1.2 — 2026-10-19
 
-- Detect new plugins when a hot recomposition happens before the previous detector runs.
-- Recover the panel and allow retry after a restart fails; ignore status requests started before the restart.
-- Show restart errors from the new-plugin dialog in the panel and disable unsupported restart actions.
-- Local uninstall removes only Bingo entries, preserving later profile changes and junction targets.
+- 修复新插件安装后立即热重载时漏掉提醒。
+- 修复重启失败后遮罩无法恢复，并避免旧状态请求误关闭新遮罩。
+- 修复新插件弹窗中的错误提示和不可用按钮状态。
+- 本地卸载只移除 Bingo，保留其他插件配置与 junction 源目录。
+- 移除公共文档和预览数据中的个人路径及内部协作记录。
+- 精简安装、开发和发布文档，增加构建与测试命令。
 
-### Changed
+## 0.1.1 — 2026-10-19
 
-- Remove personal machine paths and internal task notes from public documentation and preview data.
-- Shorten installation, development and release instructions; add build and test commands.
+- 使用进程标记区分热重组与完整启动，保留同进程中的检测基线与待处理提醒。
+- 增加文件监听，保留定时轮询作为兜底。
+- 持久化待处理提醒，并增加检测事件日志。
+- 增加按钮拖动、边缘吸附和位置记忆。
 
-## [0.1.1] - 2026-10-19
+## 0.1.0 — 2026-10-19
 
-### Fixed
-
-- **New-plugin prompts no longer disappear when dshmarket hot-mounts a plugin.**
-  A Cordis recomposition re-applies Bingo in the same host process; v0.1.0
-  refreshed its baseline there, adopting the just-installed plugin silently.
-  The baseline and pending record now persist across same-process
-  recompositions and are only refreshed on a real app boot (new runtime token).
-- Detection now also reacts to `fs.watch` changes immediately, with the 4s
-  `stat` poll kept as a fallback.
-- Pending state and runtime token are persisted in `state.json`; a
-  `events.log` records baseline/pending transitions for support.
-
-### Added
-
-- **Drag and snap** — drag the Bingo capsule anywhere; releasing near an edge
-  snaps to the nearest edge, the panel re-anchors, and the position is
-  remembered in localStorage across restarts.
-
-## [0.1.0] - 2026-10-19
-
-Initial implementation.
-
-### Added
-
-- Bottom-left **Bingo** capsule in DeepSeek Harness, with a panel anchored above it.
-- Whole-app restart of the Electron desktop app via a detached restart helper:
-  terminate the shell/host PIDs, wait for exit and port release, relaunch, log every stage.
-- New-plugin detection: watches the profile manifest at runtime and offers a restart
-  when the dependency/bundle signature changes; per-signature "later" acknowledgement.
-- Centered **检测到新插件** (new plugin detected) dialog with package names and versions.
-- `Ctrl+Alt+B` / `Cmd+Alt+B` shortcut.
-- Degraded web/headless mode: visible button, disabled restart, page-refresh fallback.
-- Optional host plugin config: `enabled`, `pollMs`, `confirm`, `allowRestart`,
-  `position`, `debug`.
-- English and Chinese READMEs, MIT license, market icon and release runbook.
-- Advanced local desktop installer for pre-publication evaluation
-  (`scripts/install-local-desktop.ps1`) with manifest backup, `-WhatIf` and restore.
-- Zero runtime npm dependencies; no outbound network requests.
-
-### Notes
-
-- npm package name: `dsh-bingo-ren` (`dsh-bingo` was already taken).
-- Not yet published to npm; not yet listed in the community plugin directory.
-- Repository metadata points to the public GitHub repository.
+- 初始实现：常驻 Bingo 按钮、重启面板、新插件检测与提醒。
+- 独立 helper 负责结束指定进程、等待退出和端口释放、重新启动应用。
+- 支持快捷键、深浅色主题及 Web 降级刷新。
+- 提供可选配置、本地安装脚本、测试、预览图片及中英文说明。
+- 零运行时依赖，无遥测，使用 MIT 许可证。
