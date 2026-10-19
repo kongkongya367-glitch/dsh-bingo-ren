@@ -37,4 +37,4 @@ npm view dsh-bingo-ren version dist.tarball
 
 ## 0.2.0 发布进度
 
-GitHub 源码、标签与 Release 安装包已发布并校验。npm 发布因浏览器验证会话过期而中断，当前 latest 仍为 0.1.3。重新完成 npm 身份验证、核对 registry 下载包后，再移除 README 中的待发布提示。
+GitHub 源码、标签与 Release 安装包已发布。npm 的 0.2.0 已上线，latest 指向 0.2.0；已下载核对，npm 与 GitHub 安装包 SHA-256 一致。
