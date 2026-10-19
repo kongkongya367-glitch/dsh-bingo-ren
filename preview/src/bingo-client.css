@@ -18,7 +18,9 @@
   -webkit-app-region: no-drag;
 }
 
-:host([data-position="bottom-right"]) { left: auto; right: 18px; }
+:host(.is-snapping) {
+  transition: left .18s cubic-bezier(.2, .8, .2, 1), top .18s cubic-bezier(.2, .8, .2, 1);
+}
 
 .bingo-root {
   --bingo-font: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -103,7 +105,7 @@
 .bingo-pill {
   position: absolute;
   left: 0;
-  bottom: 0;
+  top: 0;
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -116,12 +118,19 @@
   font: 500 13px/1 var(--bingo-font);
   letter-spacing: .005em;
   white-space: nowrap;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   pointer-events: auto;
   box-shadow: var(--bingo-shadow-pill);
   transition: transform .15s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
 }
-:host([data-position="bottom-right"]) .bingo-pill { left: auto; right: 0; }
+:host(.is-dragging) .bingo-pill {
+  cursor: grabbing;
+  transition: none;
+  transform: none;
+}
 
 .bingo-pill:hover {
   transform: translateY(-1px);
@@ -186,7 +195,6 @@
   pointer-events: auto;
   animation: bingo-panel-in .18s cubic-bezier(.2, .8, .2, 1);
 }
-:host([data-position="bottom-right"]) .bingo-panel { left: auto; right: 0; transform-origin: bottom right; }
 
 .bingo-head { display: flex; align-items: center; gap: 7px; min-height: 22px; }
 .bingo-head__title { font-size: 13.5px; font-weight: 650; letter-spacing: -.005em; }
@@ -450,6 +458,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :host(.is-snapping) { transition-duration: .001ms !important; }
   .bingo-root *, .bingo-root *::before, .bingo-root *::after {
     animation-duration: .001ms !important;
     animation-iteration-count: 1 !important;

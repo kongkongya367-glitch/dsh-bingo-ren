@@ -1,6 +1,6 @@
 {
   "name": "dsh-bingo-restart",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bottom-left Bingo button for DeepSeek Harness: one click in its panel restarts the whole desktop app, with new-plugin prompts, a keyboard shortcut and zero runtime dependencies.",
   "keywords": [
     "dsh-plugin",

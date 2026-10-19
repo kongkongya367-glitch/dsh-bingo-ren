@@ -235,4 +235,4 @@ try { rmSync(tmp, { recursive: true, force: true }); } catch {}
 
 console.log('\n' + '='.repeat(50));
 console.log(String(passed) + ' passed, ' + String(failed) + ' failed');
-if (failed) process.exitCode = 1;
+process.exit(failed ? 1 : 0);

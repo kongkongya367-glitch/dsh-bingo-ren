@@ -249,7 +249,7 @@ function panelSvg(hasPending = false) {
   out.push(rect(innerX, hy, 22, 22, { r: 7, fill: C.ink }) + spark(innerX + 11, hy + 11, 12, C.onInk));
   out.push(txt(innerX + 29, hy + 15.2, 'Bingo', { size: 13.5, weight: 650 }));
   out.push(rect(innerX + 68, hy + 3, 39, 17, { r: 5, fill: C.surface2, stroke: C.border }));
-  out.push(txt(innerX + 87.5, hy + 14.6, 'v0.1.0', { size: 10, weight: 500, fill: C.ink3, anchor: 'middle' }));
+  out.push(txt(innerX + 87.5, hy + 14.6, 'v0.1.1', { size: 10, weight: 500, fill: C.ink3, anchor: 'middle' }));
   out.push(strokePath('M' + (x + w - 33) + ' ' + (hy + 8) + 'l8 8M' + (x + w - 25) + ' ' + (hy + 8) + 'l-8 8', C.ink3, 1.6));
   const sy = top + 48;
   out.push(circle(innerX + 3, sy + 9, 3, C.ok));

@@ -14,7 +14,7 @@ Bingo is not on npm and is not listed in the community plugin directory.
 | npm | **Not published** |
 | Community directory | **Not submitted**; draft only in `market/` |
 | Repository URL | **Placeholder** `https://github.com/your-name/dsh-bingo-restart` |
-| Version | `0.1.0` |
+| Version | `0.1.1` |
 
 ## 2. Replace the placeholders
 
@@ -72,7 +72,7 @@ running `desktop` profile:
 
 ```sh
 npm pack
-dsh plugin --profile bingo-selftest add ./dsh-bingo-restart-0.1.0.tgz
+dsh plugin --profile bingo-selftest add ./dsh-bingo-restart-0.1.1.tgz
 ```
 
 The running desktop app owns its `desktop` profile: install there through
@@ -84,10 +84,10 @@ restores the backup).
 
 ## 4. Version and changelog
 
-1. First release: keep `0.1.0`, the version this package is prepared for.
+1. First release: keep `0.1.1`, the version this package is prepared for.
 2. For later releases: move the `[Unreleased]` notes in `CHANGELOG.md` under the
    new version and date.
-3. Commit, then tag after publishing: `git tag v0.1.0 && git push --tags`.
+3. Commit, then tag after publishing: `git tag v0.1.1 && git push --tags`.
 
 ## 5. npm publish (not executed)
 
@@ -132,7 +132,7 @@ Discover/plugin market follows the merge, not the npm publish.
 - [ ] `npm view dsh-bingo-restart` shows the expected version and repository link
 - [ ] Fresh install into a self-test profile works
 - [ ] README "Release status" block is updated or removed
-- [ ] GitHub release `v0.1.0` created, with the screenshots and (optionally) a
+- [ ] GitHub release `v0.1.1` created, with the screenshots and (optionally) a
       version-free prebuilt tarball `dsh-bingo-restart.tgz`
 - [ ] `market/awesome-entry.yml` `tarball:` line uncommented only if that release
       asset exists

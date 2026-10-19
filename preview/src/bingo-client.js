@@ -6,7 +6,7 @@
 
   var VERSION = typeof window.__DSH_BINGO_VERSION__ === 'string' && window.__DSH_BINGO_VERSION__
     ? window.__DSH_BINGO_VERSION__
-    : '0.1.0';
+    : '0.1.1';
   var API = '/bingo';
   var CSS_URL = typeof window.__DSH_BINGO_CLIENT_CSS__ === 'string' && window.__DSH_BINGO_CLIENT_CSS__
     ? window.__DSH_BINGO_CLIENT_CSS__
@@ -19,6 +19,10 @@
   var MANUAL_HINT_AFTER = 12000;
   var PANEL_PENDING_LIMIT = 4;
   var DIALOG_PENDING_LIMIT = 6;
+  var POS_KEY = 'dsh-bingo.position.v1';
+  var SNAP_MARGIN = 16;
+  var SNAP_THRESHOLD = 64;
+  var DRAG_SLOP = 4;
 
   var ICON_SPARK = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.4c.47 4.74 3.86 8.13 8.6 8.6-4.74.47-8.13 3.86-8.6 8.6-.47-4.74-3.86-8.13-8.6-8.6 4.74-.47 8.13-3.86 8.6-8.6Z"/></svg>';
   var ICON_CLOSE = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
@@ -95,6 +99,11 @@
     manualTimer: 0,
     pollMs: DEFAULT_POLL,
     seen: Object.create(null),
+    pos: null,
+    edge: null,
+    posUser: false,
+    drag: null,
+    suppressClick: false,
   };
 
   var host = null;
@@ -146,9 +155,183 @@
     root.setAttribute('data-theme', detectTheme());
   }
 
-  function applyPosition(position) {
-    if (position !== 'bottom-right' && position !== 'bottom-left') return;
-    if (host) host.setAttribute('data-position', position);
+  function viewportSize() {
+    return {
+      w: Math.max(0, window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 0),
+      h: Math.max(0, window.innerHeight || (document.documentElement && document.documentElement.clientHeight) || 0)
+    };
+  }
+
+  function pillSize() {
+    var rect = els.pill ? els.pill.getBoundingClientRect() : null;
+    return { w: (rect && rect.width) || 120, h: (rect && rect.height) || 44 };
+  }
+
+  function edgeMargin() {
+    return viewportSize().w <= 480 ? 12 : SNAP_MARGIN;
+  }
+
+  function readSavedPosition() {
+    try {
+      var raw = window.localStorage && window.localStorage.getItem(POS_KEY);
+      if (!raw) return null;
+      var value = JSON.parse(raw);
+      if (!value || typeof value.x !== 'number' || typeof value.y !== 'number') return null;
+      var edge = value.edge && typeof value.edge === 'object'
+        ? { h: value.edge.h === 'left' || value.edge.h === 'right' ? value.edge.h : null, v: value.edge.v === 'top' || value.edge.v === 'bottom' ? value.edge.v : null }
+        : null;
+      return { x: value.x, y: value.y, edge: edge };
+    } catch (err) {}
+    return null;
+  }
+
+  function savePosition(pos) {
+    try {
+      if (window.localStorage) window.localStorage.setItem(POS_KEY, JSON.stringify(pos));
+    } catch (err) {}
+  }
+
+  function currentEdge(x, y, size, vp, margin) {
+    var edge = 'free';
+    if (x <= margin + SNAP_THRESHOLD) edge = 'left';
+    else if (vp.w - (x + size.w) <= margin + SNAP_THRESHOLD) edge = 'right';
+    if (y <= margin + SNAP_THRESHOLD) edge = edge === 'free' ? 'top' : edge + '-top';
+    else if (vp.h - (y + size.h) <= margin + SNAP_THRESHOLD) edge = edge === 'free' ? 'bottom' : edge + '-bottom';
+    return edge;
+  }
+
+  function setPosition(x, y, persist, edge) {
+    if (edge !== undefined) S.edge = edge;
+    var vp = viewportSize();
+    var size = pillSize();
+    var margin = edgeMargin();
+    var maxX = Math.max(margin, vp.w - size.w - margin);
+    var maxY = Math.max(margin, vp.h - size.h - margin);
+    var nx = Math.min(maxX, Math.max(margin, x));
+    var ny = Math.min(maxY, Math.max(margin, y));
+    S.pos = { x: nx, y: ny };
+    if (!host) return;
+    host.style.left = nx + 'px';
+    host.style.top = ny + 'px';
+    host.style.right = 'auto';
+    host.style.bottom = 'auto';
+    host.setAttribute('data-edge', currentEdge(nx, ny, size, vp, margin));
+    if (persist) savePosition({ x: nx, y: ny, edge: S.edge || null });
+    if (S.panel) positionPanel();
+  }
+
+  function applySaved(saved) {
+    var vp = viewportSize();
+    var size = pillSize();
+    var margin = edgeMargin();
+    var x = saved.x;
+    var y = saved.y;
+    var edge = saved.edge || null;
+    if (edge && edge.h === 'left') x = margin;
+    else if (edge && edge.h === 'right') x = vp.w - size.w - margin;
+    if (edge && edge.v === 'top') y = margin;
+    else if (edge && edge.v === 'bottom') y = vp.h - size.h - margin;
+    setPosition(x, y, false, edge);
+  }
+
+  function reapplySaved() {
+    if (S.drag) return;
+    var saved = readSavedPosition();
+    if (saved) applySaved(saved);
+  }
+
+  function scheduleReapply() {
+    try {
+      if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
+        document.fonts.ready.then(reapplySaved).catch(function () {});
+      }
+    } catch (err) {}
+    window.setTimeout(reapplySaved, 300);
+  }
+
+  function initPosition() {
+    var saved = readSavedPosition();
+    if (saved) {
+      S.posUser = true;
+      applySaved(saved);
+      scheduleReapply();
+      return;
+    }
+    var vp = viewportSize();
+    var size = pillSize();
+    var x = INITIAL_POSITION === 'bottom-right' ? vp.w - 18 - size.w : 18;
+    setPosition(x, vp.h - 64 - size.h, false);
+  }
+
+  function snapToEdges() {
+    if (!S.pos) return;
+    var vp = viewportSize();
+    var size = pillSize();
+    var margin = edgeMargin();
+    var x = S.pos.x;
+    var y = S.pos.y;
+    var dLeft = x - margin;
+    var dRight = vp.w - (x + size.w) - margin;
+    var dTop = y - margin;
+    var dBottom = vp.h - (y + size.h) - margin;
+    var nx = x;
+    var ny = y;
+    var hEdge = null;
+    var vEdge = null;
+    if (dLeft <= SNAP_THRESHOLD && dLeft <= dRight) { nx = margin; hEdge = 'left'; }
+    else if (dRight <= SNAP_THRESHOLD) { nx = vp.w - size.w - margin; hEdge = 'right'; }
+    if (dTop <= SNAP_THRESHOLD && dTop <= dBottom) { ny = margin; vEdge = 'top'; }
+    else if (dBottom <= SNAP_THRESHOLD) { ny = vp.h - size.h - margin; vEdge = 'bottom'; }
+    S.edge = { h: hEdge, v: vEdge };
+    if (host) host.classList.add('is-snapping');
+    setPosition(nx, ny, true, S.edge);
+    window.setTimeout(function () {
+      if (host) host.classList.remove('is-snapping');
+    }, 220);
+  }
+
+  function positionPanel() {
+    if (!S.panel || !els.panel || els.panel.hidden) return;
+    var button = els.pill.getBoundingClientRect();
+    var panel = els.panel.getBoundingClientRect();
+    var vp = viewportSize();
+    var gap = 10;
+    var pad = 8;
+    var width = panel.width || 312;
+    var height = panel.height || 200;
+    var top = button.top - height - gap;
+    if (top < pad) top = button.bottom + gap;
+    var left = button.left;
+    if (left + width > vp.w - pad) left = button.right - width;
+    left = Math.max(pad, Math.min(left, Math.max(pad, vp.w - width - pad)));
+    top = Math.max(pad, Math.min(top, Math.max(pad, vp.h - height - pad)));
+    els.panel.style.position = 'fixed';
+    els.panel.style.left = left + 'px';
+    els.panel.style.top = top + 'px';
+    els.panel.style.right = 'auto';
+    els.panel.style.bottom = 'auto';
+    els.panel.style.maxHeight = Math.max(160, vp.h - pad * 2) + 'px';
+    els.panel.style.overflow = 'auto';
+    els.panel.style.transformOrigin = (top < button.top ? 'bottom' : 'top') + ' ' + (left < button.left ? 'right' : 'left');
+  }
+
+  function onResize() {
+    if (!S.pos) return;
+    var vp = viewportSize();
+    var size = pillSize();
+    var margin = edgeMargin();
+    var x = S.pos.x;
+    var y = S.pos.y;
+    if (S.edge && S.edge.h === 'left') x = margin;
+    else if (S.edge && S.edge.h === 'right') x = vp.w - size.w - margin;
+    else if (x <= margin + 2) x = margin;
+    else if (x + size.w >= vp.w - margin - 2) x = vp.w - size.w - margin;
+    if (S.edge && S.edge.v === 'top') y = margin;
+    else if (S.edge && S.edge.v === 'bottom') y = vp.h - size.h - margin;
+    else if (y <= margin + 2) y = margin;
+    else if (y + size.h >= vp.h - margin - 2) y = vp.h - size.h - margin;
+    setPosition(x, y, true, S.edge);
+    if (S.panel) positionPanel();
   }
 
   function watchTheme() {
@@ -234,7 +417,6 @@
       S.status = data;
       S.pending = data.pending || null;
       if (typeof data.pollMs === 'number') S.pollMs = clamp(data.pollMs, 1500, 60000);
-      applyPosition(data.position);
       applyVersion(data.version);
       render();
       reveal();
@@ -267,6 +449,9 @@
     if (!root || S.shown) return;
     S.shown = true;
     root.setAttribute('data-visible', 'true');
+    // The root is display:none until this point, so every earlier measurement
+    // used the 120px fallback. Re-apply now that the pill has a real width.
+    initPosition();
   }
 
   function conceal() {
@@ -395,6 +580,7 @@
       fillPackages(els.dialogList, els.dialogMore, pending.packages, DIALOG_PENDING_LIMIT);
       els.dialogPrimary.disabled = restarting || S.busy;
     }
+    if (S.panel) positionPanel();
   }
 
   function showError(message) {
@@ -444,8 +630,10 @@
     els.panel.hidden = false;
     els.pill.setAttribute('aria-expanded', 'true');
     render();
+    positionPanel();
     window.setTimeout(function () {
       if (!S.panel) return;
+      positionPanel();
       try { els.close.focus({ preventScroll: true }); } catch (err) {}
     }, 40);
   }
@@ -623,8 +811,80 @@
     pollOnce(true);
   }
 
+  function onPillPointerDown(event) {
+    if (S.restarting || S.busy) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    var rect = els.pill.getBoundingClientRect();
+    S.drag = {
+      id: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: rect.left,
+      originY: rect.top,
+      moved: false
+    };
+    try {
+      els.pill.setPointerCapture(event.pointerId);
+    } catch (err) {}
+  }
+
+  function onPillPointerMove(event) {
+    if (!S.drag || event.pointerId !== S.drag.id) return;
+    var dx = event.clientX - S.drag.startX;
+    var dy = event.clientY - S.drag.startY;
+    if (!S.drag.moved && Math.abs(dx) + Math.abs(dy) > DRAG_SLOP) {
+      S.drag.moved = true;
+      if (host) host.classList.add('is-dragging');
+      closePanel(false);
+    }
+    if (!S.drag.moved) return;
+    S.edge = null;
+    setPosition(S.drag.originX + dx, S.drag.originY + dy, false);
+    if (event.cancelable) event.preventDefault();
+  }
+
+  function finishDrag(event, cancel) {
+    var drag = S.drag;
+    if (!drag || (event && event.pointerId !== drag.id)) return;
+    S.drag = null;
+    try {
+      els.pill.releasePointerCapture(drag.id);
+    } catch (err) {}
+    if (host) host.classList.remove('is-dragging');
+    if (!drag.moved) return;
+    S.posUser = true;
+    S.suppressClick = true;
+    window.setTimeout(function () {
+      S.suppressClick = false;
+    }, 60);
+    if (cancel) {
+      if (S.pos) setPosition(S.pos.x, S.pos.y, true);
+      return;
+    }
+    snapToEdges();
+  }
+
   function bind() {
-    els.pill.addEventListener('click', togglePanel);
+    els.pill.addEventListener('click', function (event) {
+      if (S.suppressClick) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      togglePanel();
+    });
+    els.pill.addEventListener('pointerdown', onPillPointerDown);
+    els.pill.addEventListener('pointermove', onPillPointerMove);
+    els.pill.addEventListener('pointerup', function (event) {
+      finishDrag(event, false);
+    });
+    els.pill.addEventListener('pointercancel', function (event) {
+      finishDrag(event, true);
+    });
+    els.pill.addEventListener('dragstart', function (event) {
+      event.preventDefault();
+    });
+    window.addEventListener('resize', onResize);
     els.close.addEventListener('click', function () { closePanel(); });
     els.primary.addEventListener('click', function () {
       if (!S.status || !S.status.canRestart) return;
@@ -659,7 +919,6 @@
     host = document.createElement('div');
     host.id = 'dsh-bingo-host';
     host.setAttribute('data-dsh-bingo', '');
-    host.setAttribute('data-position', INITIAL_POSITION);
     host.hidden = true;
 
     shadow = host.attachShadow({ mode: 'open' });
@@ -686,7 +945,17 @@
     link.href = CSS_URL;
     link.addEventListener('load', function () {
       host.hidden = false;
+      initPosition();
       pollOnce(true);
+      // Re-apply once layout has settled: the first read can still see the
+      // 120px fallback width, which would clamp a saved right-edge position
+      // short of the edge. A timer (not rAF) also works in hidden/headless pages.
+      window.setTimeout(function () {
+        if (S.drag) return;
+        var saved = readSavedPosition();
+        if (saved) setPosition(saved.x, saved.y, false);
+        else initPosition();
+      }, 60);
     });
     link.addEventListener('error', function () {
       if (host && host.parentNode) host.parentNode.removeChild(host);

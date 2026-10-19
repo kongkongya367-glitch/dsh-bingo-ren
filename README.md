@@ -1,9 +1,10 @@
 # Bingo — one-click restart for DeepSeek Harness
 
-A quiet **Bingo** button in the bottom-left corner of DeepSeek Harness (dsh). Open it, and one click on **Bingo 一下** restarts the whole desktop app. When a plugin is installed while the app is running, Bingo notices and offers the restart for you.
+A quiet **Bingo** button in DeepSeek Harness (dsh). It starts in the bottom-left corner, can be dragged anywhere, and snaps to the nearest edge when you let go. Open it, and one click on **Bingo 一下** restarts the whole desktop app. When a plugin is installed while the app is running, Bingo notices and offers the restart for you.
 
 - **Whole-app restart** — kills the Electron shell and its host process, waits for the old instance to release the port, then starts the app again.
 - **New-plugin detection** — watches the profile manifest while the app runs; a new dependency raises a centered “检测到新插件” (new plugin detected) dialog. “稍后” (later) acknowledges that exact signature, so the next plugin asks again.
+- **Drag, snap, remember** — drag the capsule with the mouse/finger; releasing near an edge snaps it there, the panel re-anchors automatically, and the position survives restarts (localStorage).
 - **Keyboard shortcut** — `Ctrl+Alt+B` (`Cmd+Alt+B` on macOS) opens the panel.
 - **Zero runtime dependencies** — plain Node ESM plus one browser script; no React, no bundler, no npm install tree.
 - **Native look** — neutral paper/ink palette, 1px borders, soft shadows, light theme by default with automatic dark-mode support. Inline SVG icon, no emoji.
@@ -18,6 +19,14 @@ A quiet **Bingo** button in the bottom-left corner of DeepSeek Harness (dsh). Op
 | <img src="assets/screenshot-button.png" width="280" alt="Bingo button in the bottom-left corner"> | <img src="assets/screenshot-panel.png" width="280" alt="Bingo panel anchored above the button"> | <img src="assets/screenshot-new-plugin.png" width="280" alt="New plugin dialog"> |
 
 These are **offline design previews** rendered from the same geometry and mock data as `preview/index.html` — not browser screenshots of a live profile. The dark panel preview is <a href="assets/screenshot-panel-dark.png">here</a>; `preview/README.md` has a one-line Edge command to retake real screenshots on any machine without the sandbox's named-pipe restriction.
+
+### Drag and edge snapping
+
+The capsule can be dragged anywhere; it snaps to the nearest edge on release, the panel re-anchors to stay on-screen, and the position survives restarts.
+
+<img src="assets/screenshot-dragged.png" width="520" alt="Bingo dragged and snapped to the top-right corner">
+
+This one is a real Chromium (headless Edge) capture of preview/index.html made while verifying drag/snap; the page content is still mock, not a live profile.
 
 ## Install
 
@@ -97,13 +106,13 @@ All options are optional and live under the `dsh-bingo` row in the profile's `co
   config:
     enabled: true          # false = do not inject the button or routes
     pollMs: 4000           # profile poll interval, 1500–60000
-    confirm: true          # accepted by the host; 0.1.0 always shows the panel first
+    confirm: true          # accepted by the host; 0.1.1 always shows the panel first
     allowRestart: true     # false = hard disable, e.g. an operations escape hatch
     position: bottom-left  # or bottom-right
     debug: false
 ```
 
-In 0.1.0 the panel is always the confirmation step; `confirm` is accepted by the host but does not skip the panel yet.
+In 0.1.1 the panel is always the confirmation step; `confirm` is accepted by the host but does not skip the panel yet.
 
 ## Safety
 

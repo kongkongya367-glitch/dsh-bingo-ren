@@ -17,7 +17,7 @@
 | `&theme=dark` | 深色主题 |
 | `&dev=1` | 右下角场景切换条 |
 
-也可以用 `node preview/build.mjs` 从 `preview/src/bingo-client.{js,css}` 重新生成 `client/` 下的压缩产物。生成时做三类保守压缩：去空白、类名/变量短名、状态字段短名；源码保留在 `preview/src`，构建后 JS+CSS 约 29.9 KB（预算 < 30 KB）。
+也可以用 `node preview/build.mjs` 从 `preview/src/bingo-client.{js,css}` 重新生成 `client/` 下的压缩产物。生成时做三类保守压缩：去空白、类名/变量短名、状态字段短名；源码保留在 `preview/src`，构建后 JS+CSS 约 35 KB（预算 < 38 KB，含拖拽/吸附）。
 
 ## 关于 assets/screenshot-*.png
 

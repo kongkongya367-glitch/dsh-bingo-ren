@@ -28,7 +28,12 @@ test('client implements the host contract', () => {
     'visibilitychange',
     'data-ds-theme-source',
     'prefers-reduced-motion',
-    'dsh-bingo:ready'
+    'dsh-bingo:ready',
+    'localStorage',
+    'pointerdown',
+    'is-snapping',
+    'snapToEdges',
+    'SNAP_THRESHOLD'
   ]) {
     assert.ok(clientJs.includes(marker) || clientCss.includes(marker), 'missing ' + marker);
   }
@@ -50,9 +55,9 @@ test('client avoids forbidden browser APIs and frameworks', () => {
   assert.doesNotMatch(clientJs, /\bReact\b/);
 });
 
-test('client assets stay below the 30 KB budget', () => {
+test('client assets stay below the 38 KB budget', () => {
   const total = statSync(join(root, 'client/bingo-client.js')).size + statSync(join(root, 'client/bingo-client.css')).size;
-  assert.ok(total < 30000, 'client js+css is ' + total + ' bytes');
+  assert.ok(total < 38000, 'client js+css is ' + total + ' bytes');
 });
 
 test('preview mocks fetch and exposes every screenshot scene', () => {
@@ -68,7 +73,7 @@ test('preview mocks fetch and exposes every screenshot scene', () => {
 });
 
 test('required screenshots exist', () => {
-  for (const name of ['screenshot-button.png', 'screenshot-panel.png', 'screenshot-new-plugin.png']) {
+  for (const name of ['screenshot-button.png', 'screenshot-panel.png', 'screenshot-new-plugin.png', 'screenshot-dragged.png']) {
     assert.ok(existsSync(join(root, 'assets', name)), 'missing ' + name);
   }
 });

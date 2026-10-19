@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.1.1] - 2026-10-19
+
+### Fixed
+
+- **New-plugin prompts no longer disappear when dshmarket hot-mounts a plugin.**
+  A Cordis recomposition re-applies Bingo in the same host process; v0.1.0
+  refreshed its baseline there, adopting the just-installed plugin silently.
+  The baseline and pending record now persist across same-process
+  recompositions and are only refreshed on a real app boot (new runtime token).
+- Detection now also reacts to `fs.watch` changes immediately, with the 4s
+  `stat` poll kept as a fallback.
+- Pending state and runtime token are persisted in `state.json`; a
+  `events.log` records baseline/pending transitions for support.
+
+### Added
+
+- **Drag and snap** — drag the Bingo capsule anywhere; releasing near an edge
+  snaps to the nearest edge, the panel re-anchors, and the position is
+  remembered in localStorage across restarts.
+
 ## [0.1.0] - 2026-10-19
 
 Initial release, prepared but **not yet published**.

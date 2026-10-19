@@ -204,6 +204,7 @@ function setupRuntime(options) {
     execPath: 'C:/fake/DeepSeek Harness.exe',
     helperPath: 'C:/fake/lib/restart-helper.cjs',
     now: opts.now,
+    runtimeToken: opts.runtimeToken,
   });
   return {
     dir,
@@ -868,6 +869,65 @@ test('detection: version-only change advances the baseline silently', async (t) 
   assert.equal(ctx.runtime.status().pending, null);
   const persisted = JSON.parse(fs.readFileSync(path.join(ctx.stateDir, 'state.json'), 'utf8'));
   assert.equal(persisted.baselineSignature, computeSignature({ dependencies: { 'dsh-a': '1.0.1' }, dsh: { profile: { bundles: ['dsh-a'] } } }));
+});
+
+test('recomposition: same host boot preserves pending instead of re-baselining', async (t) => {
+  const initial = { dependencies: { 'dsh-a': '1.0.0' }, dsh: { profile: { bundles: ['dsh-a'] } } };
+  const ctx = setupRuntime({ desktop: false, packageJson: initial, runtimeToken: 'boot-1' });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, {
+    dependencies: { 'dsh-a': '1.0.0', 'dsh-hot-mounted': '1.2.3' },
+    dsh: { profile: { bundles: ['dsh-a', 'dsh-hot-mounted'] } },
+  });
+  await ctx.runtime.detectNow();
+  const pending = ctx.runtime.status().pending;
+  assert.deepEqual(pending.packages, [{ name: 'dsh-hot-mounted', version: '1.2.3' }]);
+  const persisted = JSON.parse(fs.readFileSync(path.join(ctx.stateDir, 'state.json'), 'utf8'));
+  assert.deepEqual(persisted.pending.packages, [{ name: 'dsh-hot-mounted', version: '1.2.3' }]);
+  assert.equal(persisted.runtimeToken, 'boot-1');
+
+  // A Cordis recomposition re-applies Bingo in the SAME host process.
+  const second = createRuntime(createHostContext({ webServer: createFakeWebServer() }), {}, {
+    env: ctx.env,
+    stateDir: ctx.stateDir,
+    profileDir: ctx.profileDir,
+    settleMs: 0,
+    isDesktop: false,
+    runtimeToken: 'boot-1',
+    version: '9.9.9',
+  });
+  t.after(() => {
+    try { second.dispose(); } catch (error) {}
+  });
+  assert.deepEqual(second.status().pending.packages, [{ name: 'dsh-hot-mounted', version: '1.2.3' }]);
+});
+
+test('new app boot refreshes the baseline and clears pending', async (t) => {
+  const initial = { dependencies: { 'dsh-a': '1.0.0' }, dsh: { profile: { bundles: ['dsh-a'] } } };
+  const ctx = setupRuntime({ desktop: false, packageJson: initial, runtimeToken: 'boot-1' });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, {
+    dependencies: { 'dsh-a': '1.0.0', 'dsh-installed-while-closed': '2.0.0' },
+    dsh: { profile: { bundles: ['dsh-a', 'dsh-installed-while-closed'] } },
+  });
+  await ctx.runtime.detectNow();
+  assert.ok(ctx.runtime.status().pending);
+
+  const nextBoot = createRuntime(createHostContext({ webServer: createFakeWebServer() }), {}, {
+    env: ctx.env,
+    stateDir: ctx.stateDir,
+    profileDir: ctx.profileDir,
+    settleMs: 0,
+    isDesktop: false,
+    runtimeToken: 'boot-2',
+    version: '9.9.9',
+  });
+  t.after(() => {
+    try { nextBoot.dispose(); } catch (error) {}
+  });
+  // Already active after the restart: no misleading prompt.
+  assert.equal(nextBoot.status().pending, null);
+  assert.equal(nextBoot.status().profile.dir, ctx.profileDir);
 });
 
 test('lastRestart is reconciled from the helper log tail', async (t) => {

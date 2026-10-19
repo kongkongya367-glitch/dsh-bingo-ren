@@ -1,9 +1,10 @@
 # Bingo —— 给 DeepSeek Harness 的一键重启按钮
 
-DeepSeek Harness（dsh）左下角常驻一枚安静的 **Bingo** 按钮。点开面板，再点一下「Bingo 一下」，整个桌面端就会重启；运行期间装了新插件，Bingo 会主动提醒你重启。
+DeepSeek Harness（dsh）里常驻一枚安静的 **Bingo** 按钮，默认在左下角；可以拖动到任意位置，松手时自动吸附最近的边缘。点开面板，再点一下「Bingo 一下」，整个桌面端就会重启；运行期间装了新插件，Bingo 会主动提醒你重启。
 
 - **整应用重启** —— 结束 Electron shell 与宿主进程，等旧实例退出并释放端口，再重新启动应用。
 - **新插件检测** —— 运行期间监视 profile 清单；出现新依赖时弹出居中对话框。选「稍后」只确认当前这一组签名，之后再有新插件仍会提醒。
+- **拖动 / 吸附 / 记忆位置** —— 鼠标或手指拖动胶囊，松手自动吸附最近边缘；面板会跟着按钮重新定位，位置重启后仍保留（localStorage）。
 - **快捷键** —— `Ctrl+Alt+B`（macOS 为 `Cmd+Alt+B`）打开面板。
 - **零运行时依赖** —— 纯 Node ESM + 一个浏览器脚本；不用 React、不用打包器、没有依赖树。
 - **原生质感** —— 中性纸白/墨黑、1px 细边、柔和阴影、默认浅色并自动适配深色；内联 SVG 图标，无 emoji。
@@ -18,6 +19,14 @@ DeepSeek Harness（dsh）左下角常驻一枚安静的 **Bingo** 按钮。点�
 | <img src="assets/screenshot-button.png" width="280" alt="左下角 Bingo 按钮"> | <img src="assets/screenshot-panel.png" width="280" alt="Bingo 面板"> | <img src="assets/screenshot-new-plugin.png" width="280" alt="新插件对话框"> |
 
 以上是**离线设计预览**：与 `preview/index.html` 使用同一套几何尺寸与模拟数据渲染，不是真实 profile 的浏览器实拍。深色面板见 <a href="assets/screenshot-panel-dark.png">这张图</a>；`preview/README.md` 附了在任何未受限机器上一行命令重拍真实截图的步骤。
+
+### 拖动与边缘吸附
+
+按钮可以拖到任意位置；松手时靠近哪条边就吸附到哪条边，面板会自动换到不会超出屏幕的一侧，位置在重启后保留。
+
+<img src="assets/screenshot-dragged.png" width="520" alt="拖动到右上角并吸附后的 Bingo">
+
+这张是 preview/index.html 在真实 Chromium（Edge headless）中的截图，用于验证拖动/吸附；页面内容仍是 mock，不是真实 profile。
 
 ## 安装
 
@@ -95,13 +104,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-deskto
   config:
     enabled: true          # false = 不注入按钮、不注册路由
     pollMs: 4000           # profile 轮询间隔，1500–60000
-    confirm: true          # 宿主接受；0.1.0 始终先打开面板确认
+    confirm: true          # 宿主接受；0.1.1 始终先打开面板确认
     allowRestart: true     # false = 强制禁用，运维逃生开关
     position: bottom-left  # 或 bottom-right
     debug: false
 ```
 
-0.1.0 中面板始终是确认层；`confirm` 会被宿主接受，但暂不会跳过面板。
+0.1.1 中面板始终是确认层；`confirm` 会被宿主接受，但暂不会跳过面板。
 
 ## 安全
 

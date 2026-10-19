@@ -8,6 +8,9 @@ verification/
 test/fixtures/tmp/
 .tmp/
 .testhome/
+.pnpm-store/
+.edge-test/
+.packcache/
 
 # Tool scratch files
 *.log
