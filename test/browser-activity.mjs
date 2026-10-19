@@ -86,12 +86,34 @@ try {
   await navigate('checks&theme=dark');
   assert.match(await text(), /运行中/); assert.match(await text(), /加载失败/); assert.match(await text(), /无法确认/);
   await shot('checks-dark');
-  await navigate('checks', 375, 700);
+  await navigate('recovery');
+  assert.match(await text(), /最小启动并重启/);
+  assert.match(await text(), /离线入口/);
+  assert.equal(await evaluate(shadow+".querySelector('[data-el=recoveryTab]').getAttribute('aria-pressed')"),'true');
+  await shot('minimal-boot');
+  await navigate('cleanup');
+  await evaluate(shadow + ".querySelector('[data-el=deskContent] input[type=checkbox]').click()");
+  await clickText('隔离所选');
+  assert.match(await text(), /确认移入隔离区/);
+  await clickText('确认移入隔离区');
+  await waitFor(async () => (await text()).includes('已隔离'), 'quarantine');
+  await shot('quarantine');
+  await clickText('永久删除');
+  assert.match(await text(), /确认永久删除/);
+  assert.equal(await evaluate("window.__BINGO_DEMO_CALLS__.filter(c=>c.url.includes('/cleanup')&&c.body.action==='purge').length"),0);
+  await clickText('恢复到原位置');
+  await waitFor(async () => !(await text()).includes('已隔离'), 'restore quarantine');
+  await navigate('health');
+  assert.match(await text(), /5.8 s/); assert.match(await text(), /dsh-pet/); assert.match(await text(), /不代表因果关系/);
+  assert.equal(await evaluate(shadow+".querySelector('[data-el=healthTab]').getAttribute('aria-pressed')"),'true');
+  await shot('startup-health');
+  await navigate('health', 375, 700);
+
   const bounds = await evaluate("(()=>{const r=" + shadow + ".querySelector('[data-el=desk]').getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom}})()");
   assert.ok(bounds.left >= 12 && bounds.right <= 363 && bounds.top >= 12 && bounds.bottom <= 688, JSON.stringify(bounds));
-  await shot('checks-mobile');
+  await shot('health-mobile');
   assert.deepEqual(errors, []);
-  console.log('PASS real Edge: history, trial mark/keep/snooze/confirmed removal, acceptance, dark/mobile layout');
+  console.log('PASS real Edge: trials, acceptance, minimal/offline entry, quarantine confirmation/restore, startup health and mobile layout');
   console.log('Screenshots: ' + dir);
 } finally {
   if (socket?.readyState === WebSocket.OPEN) {

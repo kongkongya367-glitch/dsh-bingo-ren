@@ -405,7 +405,7 @@
     var theme = params.get('theme') === 'dark' ? 'dark' : 'light';
     var pendingVisible = scene === 'pending' || scene === 'panel-pending';
 
-    window.__DSH_BINGO_VERSION__ = '0.4.0';
+    window.__DSH_BINGO_VERSION__ = '0.5.0';
     window.__DSH_BINGO_POSITION__ = 'bottom-left';
     window.__DSH_BINGO_FORCE_THEME__ = theme;
     window.__DSH_BINGO_CLIENT_CSS__ = new URL('../client/bingo-client.css', location.href).href + '?v=preview';
@@ -429,10 +429,17 @@
       { id: 'cp-3', at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(), reason: 'change', count: 5 }
     ];
     var demoLeftovers = [
-      { kind: 'ignored', name: 'dsh-example-old', path: 'C:\\Users\\example\\.dsh\\profiles\\desktop\\node_modules\\.ignored\\dsh-example-old', bytes: 184320 },
-      { kind: 'tmp', name: 'dsh-whale-widget', path: 'C:\\Users\\example\\.dsh\\profiles\\desktop\\node_modules\\dsh-whale-widget_tmp_19580_14', bytes: 96432 }
+      { id:'candidate-1', kind: 'ignored', name: 'dsh-example-old', path: 'C:\\Users\\example\\.dsh\\profiles\\desktop\\node_modules\\.ignored\\dsh-example-old', bytes: 184320 },
+      { id:'candidate-2', kind: 'tmp', name: 'dsh-whale-widget', path: 'C:\\Users\\example\\.dsh\\profiles\\desktop\\node_modules\\dsh-whale-widget_tmp_19580_14', bytes: 96432 }
     ];
     var demoSafeMode = scene === 'recovery-safe' ? { at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), applied: true, disabled: ['dsh-whale-widget', 'dsh-plugin-market'] } : null;
+    var demoQuarantine = scene === 'cleanup-isolated' ? [{id:'isolated-example',name:'dsh-example-old',status:'isolated',originalPath:'C:/Users/example/.dsh/profiles/desktop/node_modules/.ignored/dsh-example-old',at:new Date().toISOString()}] : [];
+    if(scene==='cleanup-isolated')demoLeftovers=demoLeftovers.slice(1);
+    window.__BINGO_DEMO_CALLS__ = [];
+    var demoHealth = {ok:true,metric:'host-to-bingo-ui',note:'从宿主进程启动到 Bingo 界面首次连接就绪；不包含完整 Electron 启动。插件变化与耗时仅供对照，不代表因果关系。',stats:{count:2,averageMs:4450},items:[
+      {id:'boot-new',startedAt:new Date().toISOString(),readyAt:new Date().toISOString(),hostToUiMs:5800,packageCount:9,activeCount:28,failedCount:1,failedBundleCount:1,minimal:false,changes:[{kind:'added',name:'dsh-pet'}]},
+      {id:'boot-old',startedAt:new Date(Date.now()-86400000).toISOString(),readyAt:new Date().toISOString(),hostToUiMs:3100,packageCount:8,activeCount:26,failedCount:0,failedBundleCount:0,minimal:false,changes:[]}
+    ]};
     var demoTimeline = {
       ok: true,
       stats: { count: 3, avgMs: 4120, maxMs: 5600 },
@@ -459,7 +466,8 @@
       var web = scene === 'web';
       return {
         ok: true,
-        version: '0.4.0',
+        version: '0.5.0',
+        bootId:'demo-boot',
         desktop: !web,
         canRestart: !web,
         restarting: scene === 'restarting',
@@ -497,6 +505,10 @@
     window.fetch = function (input, init) {
       var url = typeof input === 'string' ? input : (input && input.url) || '';
       var method = (init && init.method) || (input && input.method) || 'GET';
+      if(method==='POST')window.__BINGO_DEMO_CALLS__.push({url:url,body:JSON.parse(init.body||'{}')});
+      if(url.indexOf('/bingo/ready')!==-1)return reply({ok:true});
+      if(url.indexOf('/bingo/health')!==-1)return reply(demoHealth);
+      if(url.indexOf('/bingo/rescue')!==-1)return reply({ok:true,scheduled:true},202);
       if (url.indexOf('/bingo/status') !== -1) return reply(statusPayload());
       if (url.indexOf('/bingo/activity') !== -1) return reply(activityPayload());
       if (url.indexOf('/bingo/trials') !== -1) {
@@ -513,7 +525,7 @@
         return reply({ ok: true });
       }
       if (url.indexOf('/bingo/recovery') !== -1) {
-        return reply({ ok: true, safeMode: demoSafeMode, busy: { busy: false, reason: null },
+        return reply({ ok: true, safeMode: demoSafeMode, rescue:{available:true,active:scene==='recovery-safe',phase:scene==='recovery-safe'?'active':null,backupDir:'C:/Users/example/.dsh/bingo/rescue-demo/backups/example',offline:{launcher:'C:/Users/example/.dsh/bingo/救援/Bingo-demo-急救.cmd'}},quarantine:demoQuarantine,busy: { busy: false, reason: null },
           checkpoints: demoCheckpoints, packages: packages,
           leftovers: scene === 'recovery-clean' ? demoLeftovers : demoLeftovers });
       }
@@ -530,7 +542,11 @@
       }
       if (url.indexOf('/bingo/cleanup') !== -1) {
         var cleanBody = JSON.parse(init.body);
-        return reply({ ok: true, deleted: cleanBody.paths || [], failed: [], refused: [] });
+        if(cleanBody.action==='restore'||cleanBody.action==='purge') {demoQuarantine=demoQuarantine.filter(function(q){return q.id!==cleanBody.id;});return reply({ok:true});}
+        var selected=demoLeftovers.filter(function(c){return (cleanBody.ids||[]).indexOf(c.id)!==-1;});
+        selected.forEach(function(c){demoQuarantine.push({id:'isolated-'+c.id,name:c.name,status:'isolated',originalPath:c.path,at:new Date().toISOString()});});
+        demoLeftovers=demoLeftovers.filter(function(c){return (cleanBody.ids||[]).indexOf(c.id)===-1;});
+        return reply({ok:true,isolated:selected.map(function(c){return c.id;})});
       }
       if (url.indexOf('/bingo/restart') !== -1) return reply({ ok: true, scheduled: true }, 202);
       if (url.indexOf('/bingo/dismiss') !== -1) {
@@ -548,7 +564,7 @@
       ['restarting', '重启等待'],
       ['web', 'Web 降级']
       ,['history', '变更记录'], ['trials', '临时试用'], ['checks', '验收清单'],
-      ['recovery', '恢复'], ['recovery-safe', '安全模式中']
+      ['recovery', '恢复'], ['recovery-safe', '最小启动中'], ['cleanup','残留清理'], ['health','启动体检']
     ];
     var bar = document.getElementById('devbar');
     if (params.get('dev') === '1' && bar) {
@@ -570,8 +586,8 @@
     }
 
     window.addEventListener('dsh-bingo:ready', function () {
-      if (['history', 'trials', 'checks', 'recovery', 'recovery-safe', 'recovery-clean'].indexOf(scene) !== -1) {
-        window.__DSH_BINGO__.openManager(scene.indexOf('recovery') === 0 ? 'recovery' : scene);
+      if (['history', 'trials', 'checks', 'recovery', 'recovery-safe', 'recovery-clean','cleanup','cleanup-isolated','health'].indexOf(scene) !== -1) {
+        window.__DSH_BINGO__.openManager(scene.indexOf('recovery') === 0 ? 'recovery' : scene.indexOf('cleanup') === 0 ? 'cleanup' : scene);
         return;
       }
       if (['panel', 'panel-pending', 'web'].indexOf(scene) === -1) return;

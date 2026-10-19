@@ -48,6 +48,9 @@ const SCENES = [
   { scene: 'checks', expect: 'desk' },
   { scene: 'recovery', expect: 'desk' },
   { scene: 'recovery-safe', expect: 'desk' },
+  { scene: 'cleanup', expect: 'desk' },
+  { scene: 'cleanup-isolated', expect: 'desk' },
+  { scene: 'health', expect: 'desk' },
 ];
 
 try {

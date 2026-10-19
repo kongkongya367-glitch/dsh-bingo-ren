@@ -2,8 +2,8 @@ url: https://github.com/kongkongya367-glitch/dsh-bingo-ren
 name: kongkongya367-glitch/dsh-bingo-ren
 category: ui
 description:
-  zh: '为 DeepSeek Harness 提供可拖动的一键重启按钮、新插件提醒、变更记录、临时试用及运行状态验收。'
-  en: 'Adds a draggable Bingo button to DeepSeek Harness. It snaps to the nearest edge, remembers its position, restarts the whole desktop app in one click, and offers the same restart when a new plugin is detected while the app is running.'
+  zh: 'DeepSeek Harness 插件善后管家：重启提醒、变更记录、临时试用、启动验收、独立离线急救、可恢复的残留隔离与启动趋势。'
+  en: 'A plugin companion for DeepSeek Harness: restart reminders, change history, trials, runtime checks, independent offline recovery, recoverable leftover quarantine and startup trends.'
 
-# 固定到 v0.2.0 GitHub Release 的预构建安装包。
-tarball: https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/download/v0.2.0/dsh-bingo-ren-0.2.0.tgz
+# 固定到 v0.5.0 GitHub Release 的预构建安装包。
+tarball: https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/download/v0.5.0/dsh-bingo-ren-0.5.0.tgz

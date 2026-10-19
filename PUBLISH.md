@@ -1,6 +1,6 @@
 # 发布 Bingo
 
-当前维护版本：`0.2.0`。npm 包为 [`dsh-bingo-ren`](https://www.npmjs.com/package/dsh-bingo-ren)，GitHub 附件见 [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)。社区插件目录尚未提交。
+当前维护版本：`0.5.0`。npm 包为 [`dsh-bingo-ren`](https://www.npmjs.com/package/dsh-bingo-ren)，GitHub 附件见 [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)。源码版本不等于已发布版本，公开状态以注册表及 Release 为准。社区插件目录尚未提交。
 
 ## 发布前
 
@@ -8,6 +8,8 @@
 npm run build
 npm test
 node test/integration/mock-host.mjs
+node test/browser-activity.mjs
+npm run test:smoke
 npm pack --dry-run
 ```
 
@@ -19,7 +21,9 @@ Windows 可额外运行 `scripts/pack-check.ps1` 检查包内容。确保包内�
 
 ```sh
 npm whoami
-npm publish --access public
+mkdir dist
+npm pack --pack-destination dist
+npm publish ./dist/dsh-bingo-ren-0.5.0.tgz --access public --auth-type=web
 npm view dsh-bingo-ren version dist.tarball
 ```
 
@@ -35,6 +39,6 @@ npm view dsh-bingo-ren version dist.tarball
 
 安装测试应使用独立 profile，不操作运行中的 desktop profile。
 
-## 0.2.0 发布进度
+## 发布结果核验
 
-GitHub 源码、标签与 Release 安装包已发布。npm 的 0.2.0 已上线，latest 指向 0.2.0；已下载核对，npm 与 GitHub 安装包 SHA-256 一致。
+仅在注册表返回目标版本、并下载比对安装包后记录 npm 成功。浏览器出现 404 不能单独证明发布成功或失败；应核对终端结果和注册表。GitHub 与 npm 使用同一份 `.tgz`，公开下载后核对 SHA-256。

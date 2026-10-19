@@ -1192,6 +1192,7 @@ test('rollback is refused while the native manager is busy', async (t) => {
   const logsDir = path.join(ctx.profileDir, '.plugin-manager', 'logs', 'operation-live');
   fs.mkdirSync(logsDir, { recursive: true });
   fs.writeFileSync(path.join(logsDir, 'pnpm.log'), 'running', 'utf8');
+  fs.writeFileSync(path.join(ctx.profileDir,'.plugin-manager/run.json'),JSON.stringify({pid:process.pid,grouped:false}));
   const response = await callRoute(ctx.runtime, '/bingo/rollback', {
     method: 'POST',
     body: JSON.stringify({ confirmed: true, checkpoint: checkpoint.id }),
@@ -1230,12 +1231,12 @@ test('safe mode really disables community bundles and re-enables them on exit', 
   assert.deepEqual(status.safeMode.disabled, ['dsh-pet']);
   assert.equal(status.safeMode.applied, true);
 
-  const exited = await post({ action: 'exit' });
+  const exited = await post({ action: 'exit', confirmed: true });
   assert.equal(exited.status, 200, exited.body);
   assert.deepEqual(toggles[1], { name: 'dsh-pet', enabled: true });
   assert.deepEqual(exited.json().cleared, ['dsh-pet']);
   assert.equal((await callRoute(ctx.runtime, '/bingo/status')).json().safeMode, null);
-  assert.equal((await post({ action: 'exit' })).json().code, 'not-in-safe-mode');
+  assert.equal((await post({ action: 'exit', confirmed: true })).json().code, 'not-in-safe-mode');
 });
 
 test('safe mode without a native manager refuses instead of pretending', async (t) => {
@@ -1295,29 +1296,43 @@ test('safe mode refuses to run when every bundle is official', async (t) => {
   assert.equal(response.json().code, 'nothing-to-disable');
 });
 
-test('cleanup only deletes scanned leftovers and refuses everything else', async (t) => {
-  const ctx = setupRuntime({ packageJson: { dependencies: { keep: '1' } } });
-  cleanup(ctx, t);
-  const nodeModules = path.join(ctx.profileDir, 'node_modules');
-  // Only provable leftovers are scanned: a pnpm .ignored copy and a *_tmp_* dir.
-  const orphan = path.join(nodeModules, '.ignored', 'old-name');
-  const tmp = path.join(nodeModules, 'half-installed_tmp_4242_7');
-  fs.mkdirSync(orphan, { recursive: true });
-  fs.mkdirSync(tmp, { recursive: true });
-  fs.writeFileSync(path.join(orphan, 'index.js'), 'x', 'utf8');
-  // Outside both the profile and DSH_HOME: must never be deletable.
-  const outside = path.join(os.tmpdir(), 'bingo-outside-' + Date.now());
-  fs.mkdirSync(outside, { recursive: true });
-  t.after(() => { try { fs.rmSync(outside, { recursive: true, force: true }); } catch (error) {} });
-  const post = body => callRoute(ctx.runtime, '/bingo/cleanup', { method: 'POST', body: JSON.stringify(body) });
-  assert.equal((await post({ paths: [orphan] })).json().code, 'confirmation-required');
-  const response = await post({ confirmed: true, paths: [orphan, outside] });
-  assert.equal(response.status, 200, response.body);
-  assert.equal(response.json().deleted.length, 1);
-  assert.equal(fs.existsSync(orphan), false);
-  assert.equal(fs.existsSync(tmp), true, 'only selected paths are removed');
-  assert.equal(fs.existsSync(outside), true, 'paths outside the scan must never be deleted');
-  assert.equal(response.json().refused.some(item => item.path === outside), true);
+test('cleanup quarantines only selected fresh scan IDs and supports restoring', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { keep: '1' } } }); cleanup(ctx,t);
+  const original=path.join(ctx.profileDir,'node_modules/.ignored/old-name');
+  fs.mkdirSync(original,{recursive:true});fs.writeFileSync(path.join(original,'keep.txt'),'backup');
+  const old=new Date(Date.now()-3600000);fs.utimesSync(original,old,old);
+  const post=body=>callRoute(ctx.runtime,'/bingo/cleanup',{method:'POST',body:JSON.stringify(body)});
+  const scan=(await callRoute(ctx.runtime,'/bingo/recovery')).json().leftovers;
+  assert.equal(scan.length,1);
+  assert.equal((await post({ids:[scan[0].id]})).json().code,'confirmation-required');
+  assert.equal((await post({confirmed:true,ids:[scan[0].id,'unknown']})).json().code,'stale-cleanup-scan');
+  assert.equal(fs.existsSync(original),true);
+  const result=await post({confirmed:true,ids:[scan[0].id]});assert.equal(result.status,200,result.body);
+  assert.equal(fs.existsSync(original),false);
+  const entries=(await callRoute(ctx.runtime,'/bingo/recovery')).json().quarantine;
+  assert.equal(entries[0].status,'isolated');
+  assert.equal((await post({confirmed:true,action:'restore',id:entries[0].id})).status,200);
+  assert.equal(fs.readFileSync(path.join(original,'keep.txt'),'utf8'),'backup');
+});
+
+test('minimal boot stages exact files and passes task to detached helper',async(t)=>{
+  const ctx=setupRuntime({desktop:true,packageJson:{dependencies:{community:'1','dsh-bingo-ren':'1'},dsh:{profile:{bundles:['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app','community','dsh-bingo-ren']}}}});cleanup(ctx,t);
+  const before=fs.readFileSync(ctx.profilePkgPath,'utf8');
+  const post=body=>callRoute(ctx.runtime,'/bingo/rescue',{method:'POST',body:JSON.stringify(body)});
+  assert.equal((await post({action:'enter'})).json().code,'confirmation-required');
+  const response=await post({action:'enter',confirmed:true});assert.equal(response.status,202,response.body);
+  assert.equal(fs.readFileSync(ctx.profilePkgPath,'utf8'),before,'configuration is untouched until old processes exit');
+  const payload=JSON.parse(Buffer.from(ctx.spawnCalls[0].args[2],'base64url').toString('utf8'));
+  assert.equal(payload.recoveryTask.action,'enter');assert.equal(payload.recoveryTask.profileDir,fs.realpathSync.native(ctx.profileDir));
+});
+
+test('startup health records UI-ready once and has a protected read endpoint',async(t)=>{
+ const manager={listBundles:async()=>[],listPlugins:async()=>[{entryId:'x',enabled:true,fiberPhase:'failed'}]};
+ const ctx=setupRuntime({manager});cleanup(ctx,t);
+ let health=(await callRoute(ctx.runtime,'/bingo/health')).json();assert.equal(health.items.length,1);assert.equal(health.items[0].readyAt,null);
+ assert.equal((await callRoute(ctx.runtime,'/bingo/ready',{method:'POST',body:'{}'})).status,200);
+ health=(await callRoute(ctx.runtime,'/bingo/health')).json();assert.equal(health.items[0].failedCount,1);
+ assert.equal((await callRoute(ctx.runtime,'/bingo/health',{headers:{host:'evil.example'}})).status,403);
 });
 
 test('recovery routes enforce the trust fence', async (t) => {

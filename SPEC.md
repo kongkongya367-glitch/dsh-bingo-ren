@@ -82,3 +82,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-deskto
 - 客户端 JS/CSS 总预算调整为 52 KB，运行时仍无第三方依赖。
 
 可选真实浏览器回归：`node test/browser-activity.mjs`（需要 Chromium/Edge 及支持全局 WebSocket 的 Node.js）。仅使用模拟页面和独立浏览器 profile，不操作真实应用。
+
+## 恢复与体检（0.5.0）
+
+- rescue.js/local-state.js/rescue-cli.mjs：逐文件原子备份与恢复，共用宿主 PID 写锁，helper 在旧实例释放后应用方案；正常加载时部署独立急救副本。配置出现本次方案之外的变动时拒绝覆盖，已知的部分应用状态可恢复。
+- quarantine.js：固定范围、稳定扫描 ID、同卷隔离、冲突停止、确认后永久删除；保护 junction 祖先、活跃引用、其他可读 profile 和 Bingo 自身代码。索引先记意图再移动，重启后识别中断状态。不触碰真实 profile 做写入验证。
+- health.js：每个 host boot 建立观测记录，客户端 POST /bingo/ready 确认连接；以单调进程时钟计时，口径不包含完整 Electron 启动。统计普通启动均值，最小启动和晚接入另列。缺失宿主信息保留未知。
+- 新路由 GET /bingo/health、POST /bingo/ready、POST /bingo/rescue；POST /bingo/cleanup 使用候选 IDs 和 isolate/restore/purge 动作。所有写入动作都需要 confirmed=true，并经过同一来源栅栏。
+- 测试包含临时目录、跨进程 helper、原配置字节恢复、配置冲突、符号链接、跨 profile 数据保护、清理恢复与启动口径；真实用户 profile 仅做只读冒烟。

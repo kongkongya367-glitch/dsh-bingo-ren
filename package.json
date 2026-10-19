@@ -1,7 +1,7 @@
 {
   "name": "dsh-bingo-ren",
-  "version": "0.4.0",
-  "description": "DeepSeek Harness 插件善后管家：一键重启、新插件提醒、变更记录、临时试用、启动验收，以及回滚、安全模式和残留清理。零运行时依赖，无遥测。",
+  "version": "0.5.0",
+  "description": "DeepSeek Harness 插件善后管家：重启提醒、变更记录、临时试用、启动验收、离线最小启动与恢复、可恢复的残留隔离清理、启动体检趋势。零运行时依赖，无遥测。",
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
@@ -52,8 +52,11 @@
   },
   "scripts": {
     "build": "node preview/build.mjs",
-    "test": "node --test test/host.test.mjs test/activity.test.mjs test/recovery.test.mjs test/timeline.test.mjs test/restart-helper.test.mjs test/client-behavior.test.mjs test/install-local.test.mjs test/client-contract.mjs",
+    "test": "node --test test/host.test.mjs test/activity.test.mjs test/recovery.test.mjs test/support.test.mjs test/timeline.test.mjs test/restart-helper.test.mjs test/client-behavior.test.mjs test/install-local.test.mjs test/client-contract.mjs",
     "test:smoke": "node test/smoke-real-profile.mjs",
     "prepack": "npm run build"
+  },
+  "bin": {
+    "bingo-rescue": "lib/rescue-cli.mjs"
   }
 }

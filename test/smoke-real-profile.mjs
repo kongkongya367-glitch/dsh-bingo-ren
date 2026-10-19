@@ -21,6 +21,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { findLeftovers, guardProfileWrites, dataDirCandidates } from '../lib/recovery.js';
+import {createQuarantine} from '../lib/quarantine.js';
+import {profileWriterBusy,packageRunBusy} from '../lib/local-state.js';
 
 const args = process.argv.slice(2);
 const argOf = (name, fallback) => {
@@ -54,7 +56,7 @@ console.log('dependencies ' + declared.length);
 console.log('bundles      ' + bundles.length);
 
 /* 1. The write guard must not be blocked by permanent files. */
-const guard = guardProfileWrites({ logsDir: path.join(profileDir, '.plugin-manager', 'logs') });
+const guard = {busy:profileWriterBusy(profileDir)||packageRunBusy(profileDir),reason:null};
 if (guard.busy && guard.reason === 'pnpm-lock') {
   fail('write guard reports pnpm-lock busy; a permanent lock file must not block recovery');
 }
@@ -123,6 +125,11 @@ for (const item of leftovers) {
   });
   if (!inside) fail('leftover outside the profile and DSH home: ' + item.path);
 }
+
+const quarantine=createQuarantine({profileDir,dshHome,stateDir:path.join(dshHome,'bingo')});
+const candidates=quarantine.scan();
+for(const candidate of candidates)if(fs.lstatSync(candidate.path).isSymbolicLink())fail('linked cleanup candidate');
+note('new quarantine scanner: '+candidates.length+' candidates (read-only; nothing moved)');
 
 for (const noteText of notes) console.log('ok   ' + noteText);
 if (problems.length) {

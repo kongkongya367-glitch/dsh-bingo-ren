@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import net from 'node:net';
 import path from 'node:path';
 import test from 'node:test';
+import { createRescue } from '../lib/rescue.js';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
@@ -322,6 +323,20 @@ test('helper exits 1 when launched without a config payload', async () => {
 /* ------------------------------------------------------------------ */
 /* Integration: real fake shell/host processes                         */
 /* ------------------------------------------------------------------ */
+
+test('helper applies minimal boot only after the old fake shell has exited',async(t)=>{
+  const dir=makeDir('minimal-boot');const profile=path.join(dir,'profile');const stateDir=path.join(dir,'state');fs.mkdirSync(profile);
+  fs.writeFileSync(path.join(profile,'package.json'),JSON.stringify({dependencies:{community:'1','dsh-bingo-ren':'1'},dsh:{profile:{bundles:['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app','community','dsh-bingo-ren']}}}));
+  const rescue=createRescue({profileDir:profile,stateDir});const task=rescue.prepare('enter');
+  const shell=await startFakeProcess(dir,'shell');const deadHost=await createDeadPid();let replacement;
+  t.after(()=>{stop(shell.pid);stop(replacement);fs.rmSync(dir,{recursive:true,force:true});});
+  const cfg=baseConfig(dir,{shellPid:shell.pid,hostPid:deadHost,recoveryTask:task});
+  const run=runHelper(cfg);const result=await run.done;assert.equal(result.code,0,readLog(cfg.logPath));
+  const marker=await readJsonWithWait(cfg.testLaunch.args[1],5000);replacement=marker.pid;
+  assert.equal(helper.pidAlive(shell.pid),false);assert.equal(rescue.summary().phase,'active');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(profile,'package.json'))).dsh.profile.bundles.includes('community'),false);
+  assert.match(readLog(cfg.logPath),/recovery applied enter/);
+});
 
 test('helper: kill shell -> wait -> detached launch with a cleaned env', async (t) => {
   const dir = makeDir('happy');

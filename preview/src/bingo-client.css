@@ -209,9 +209,9 @@
   color: var(--bingo-ink);
   pointer-events: auto;
 }
-.bingo-tabs { display: flex; gap: 6px; margin: 16px 0 12px; }
+.bingo-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 12px; }
 .bingo-tabs button {
-  flex: 1; border: 1px solid var(--bingo-border); border-radius: 9px;
+  flex: 1; min-width: 80px; border: 1px solid var(--bingo-border); border-radius: 9px;
   padding: 9px 6px; color: var(--bingo-ink-2); background: var(--bingo-surface-2); cursor: pointer;
 }
 .bingo-tabs button[aria-pressed="true"] { color: var(--bingo-on-ink); background: var(--bingo-ink); }
@@ -500,3 +500,6 @@
     transition-duration: .001ms !important;
   }
 }
+
+.bingo-health-chart { display:flex; align-items:flex-end; gap:5px; height:130px; padding:16px 0; margin:8px 0 16px; border-bottom:1px solid var(--bingo-border); }
+.bingo-health-bar { flex:1; min-width:14px; background:var(--bingo-surface-2); border-top:3px solid var(--bingo-accent); font-size:10px; text-align:center; color:var(--bingo-ink-2); overflow:hidden; }
