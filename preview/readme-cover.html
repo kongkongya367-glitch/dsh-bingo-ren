@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>Bingo · README 封面</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 1200px; height: 620px; overflow: hidden; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f4f5f7; color: #15171b; padding: 32px; }
+.sheet { height: 556px; padding: 30px 34px 24px; border: 1px solid #e3e5e9; border-radius: 24px; background: #fff; }
+header { display: flex; align-items: center; justify-content: space-between; font-size: 15px; color: #707783; }
+.brand { display: flex; align-items: center; gap: 11px; color: #15171b; font-size: 26px; font-weight: 700; }
+.brand img { width: 38px; height: 38px; }
+.content { display: grid; grid-template-columns: 1fr 305px; gap: 30px; height: 318px; align-items: center; }
+h1 { margin: 0 0 18px; font-size: 63px; line-height: 1.23; letter-spacing: -2px; font-weight: 750; }
+h1 span { color: #4264d5; }
+.lead { margin: 0; font-size: 18px; line-height: 1.9; color: #69707b; }
+.preview { width: 290px; height: 298px; object-fit: contain; justify-self: center; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.step { border: 1px solid #e8eaee; border-radius: 13px; background: #fafbfc; padding: 14px 16px; }
+.number { display: inline-block; margin-right: 8px; color: #88909c; font-size: 12px; font-weight: 500; }
+.step strong { font-size: 17px; font-weight: 650; }
+.step p { margin: 9px 0 0; font-size: 12px; color: #69707b; }
+.foot { margin: 16px 0 0; font-size: 11px; color: #9096a0; }
+</style>
+<main class="sheet">
+  <header><div class="brand"><img src="../icon.svg" alt="">Bingo</div><span>DeepSeek Harness · 插件善后管家</span></header>
+  <div class="content">
+    <div><h1>装完插件，<br><span>Bingo 接班。</span></h1><p class="lead">从一句“你倒是重启一下啊”，<br>到替你记住变更、试用决定与启动状态。</p></div>
+    <img class="preview" src="../assets/screenshot-panel.png" alt="Bingo 实际面板的模拟数据预览">
+  </div>
+  <div class="steps">
+    <div class="step"><strong><span class="number">01</span>装完提醒</strong><p>发现新增，提醒你重启</p></div>
+    <div class="step"><strong><span class="number">02</span>变更留痕</strong><p>新增、版本变化、移除都有记录</p></div>
+    <div class="step"><strong><span class="number">03</span>先试再留</strong><p>下次启动，再做决定</p></div>
+    <div class="step"><strong><span class="number">04</span>启动验收</strong><p>读取宿主报告的运行状态</p></div>
+  </div>
+  <p class="foot">零运行时依赖 · 本地记录 · 无遥测 · MIT 开源　/　界面使用模拟数据，非真实账号。</p>
+</main>
+</html>

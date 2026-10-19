@@ -1,24 +1,25 @@
-# Bingo — one-click restart for DeepSeek Harness
+# Bingo
 
-A draggable Bingo button that restarts the desktop app and prompts when new plugins are installed.
+**Install a plugin. Let Bingo take the next shift.**
 
-[中文说明](README.md) · [GitHub Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)
+> It started with one sentence: “You should probably restart.”
+>
+> Now it also remembers what changed, asks which trials to keep, and shows what the host reports after startup.
 
-## Features
+[中文说明](README.md) · [Install](#install) · [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)
 
-- Open the panel and click **Bingo 一下** to restart the entire desktop app.
-- Detect new plugins while the app runs; **稍后** (Later) acknowledges the current set.
-- Drag the button, snap it near an edge, and remember its position.
-- Open with `Ctrl+Alt+B` (`Cmd+Alt+B` on macOS).
-- Light/dark themes, zero runtime dependencies, no telemetry.
+<img src="assets/readme-hero.png?v=020-preview" width="100%" alt="Bingo: restart reminders, plugin history, trial decisions and startup status in one small button">
 
-## Preview
+Bingo handles the small tasks that follow a plugin installation in **DeepSeek Harness**: remembering the restart, keeping a change trail, following up on a trial, and showing reported runtime state. The interface uses Chinese labels.
 
-| Button | Panel | New plugin |
-| --- | --- | --- |
-| <img src="assets/screenshot-button.png" width="280" alt="Bingo button"> | <img src="assets/screenshot-panel.png" width="280" alt="Bingo panel"> | <img src="assets/screenshot-new-plugin.png" width="280" alt="New plugin dialog"> |
+## The idea: follow through after installation
 
-Images use mock data. The button, panel and dialog images are design renders; the [drag example](assets/screenshot-dragged.png) is a browser capture of the mock preview page.
+| The moment | What Bingo adds |
+| --- | --- |
+| You install a plugin and forget the restart | Detect additions in the local profile and offer a restart |
+| Something changes and you need a timeline | Keep observed additions, declared-version changes and removals |
+| You install something just to try it | Mark a trial and decide on the next app boot |
+| The app is back and you want to check status | Show native host-reported activation state |
 
 ## Install
 
@@ -28,72 +29,58 @@ In **Settings → Plugins → Add plugin**, enter:
 dsh-bingo-ren
 ```
 
-You can also install using the [GitHub repository URL](https://github.com/kongkongya367-glitch/dsh-bingo-ren). Quit and reopen DeepSeek Harness once after installation so Bingo can load.
+Or use the repository URL:
 
-Manage the running desktop profile through the app. The CLI is for separate web or test profiles:
-
-```sh
-dsh plugin --profile bingo-selftest add dsh-bingo-ren
+```text
+https://github.com/kongkongya367-glitch/dsh-bingo-ren
 ```
 
-For a local source install, see the [development notes](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md).
+Quit and reopen Harness once after installing or updating. Open **Bingo → 插件记录 · 试用 · 验收** for plugin management.
 
-## Use and limitations
+The host's minimum-release-age policy may hold back a fresh release. Follow the app's prompt to request `dsh-bingo-ren@0.2.0`, or install from GitHub. Manage a running desktop profile through the app; use a separate test profile for CLI development.
 
-Click **Bingo**, then **Bingo 一下**. The panel is the confirmation step.
+## 01 · Remember the restart
 
-**Restart interrupts running tasks.** Save your work first. If a restart fails, the panel recovers and allows another attempt. Diagnostics are in `~/.dsh/bingo/restart.log`.
+Bingo observes the profile manifest while the app runs. When it finds new packages, choose **立即 Bingo** (Restart now), **稍后** (Later), or **本次新增设为试用** (Mark these additions as trials). Later acknowledges this exact set; a newer set can prompt again.
 
-The new-plugin dialog offers **立即 Bingo** (Restart now) and **稍后** (Later). Escape and clicking the backdrop also dismiss it. Plugins installed while the app is closed become the next startup baseline. A prompt indicates a new manifest entry; whether a restart is necessary depends on the plugin and host loading behavior.
+<p align="center"><img src="assets/screenshot-new-plugin.png?v=020-preview" width="540" alt="Current new-plugin prompt with restart, later and trial actions"></p>
 
-Full restart requires the official Electron desktop app. Web mode disables restart and offers a page refresh. The interface currently uses Chinese labels.
+Whether a restart is needed depends on the plugin and host loading behavior. **Restart interrupts running tasks; save your work first.**
 
-## Plugin management
+## 02 · Keep a useful trail
 
-Open **插件记录 · 试用 · 验收** in the Bingo panel.
+History records observed additions, declared-version changes, removals and trial decisions, separately for each profile. It survives restarts and labels changes first noticed at startup.
 
-- **History:** records observed additions, declared-version changes, removals and trial decisions per profile. Keeps 200 entries locally and shows the newest 100. The first run establishes a baseline; unchanged manifest ranges with changed lockfile resolutions are not detected.
-- **Trials:** mark an installed plugin, or mark newly added plugins from the prompt. On the next app boot, choose Keep, Ask next boot, or Remove. Removal needs explicit confirmation and uses the native host manager. Changed version declarations require re-marking first; Bingo cannot trial-remove itself. Trials do not isolate permissions or automatically uninstall packages.
-- **Acceptance:** shows up to 30 recently changed plugins, or current plugins when no changes exist. Reads native bundle and live-entry state: active, failed, disabled, pending or unknown. Active means host entries are running; it does not independently verify business behavior or the loaded code version. Missing host information and client-only bundles are not treated as success.
+<img src="assets/screenshot-history.png?v=020-preview" width="100%" alt="Plugin history with timestamps and old/new version declarations">
 
-History and trial state remain on this machine and do not include conversations. A confirmed removal delegates package operations to the host, which may use its configured registry. Protected or in-use plugins may require removal through the native plugin page.
+The first run establishes a baseline. Keeps 200 entries and displays the latest 100; unchanged manifest ranges with changed lockfile resolutions are not detected.
 
-## Configuration
+## 03 · Try it, then decide
 
-Configure the plugin row in the profile's `cordis.patch.yml`:
+Mark an installed plugin or a new group as a trial. On the next app boot, choose **保留** (Keep), **下次启动再问** (Ask next boot), or **移除** (Remove).
 
-```yaml
-- id: dsh-bingo-ren
-  config:
-    enabled: true
-    pollMs: 4000           # 1500–60000 milliseconds
-    allowRestart: true
-    position: bottom-left # or bottom-right
-    debug: false
-```
+<img src="assets/screenshot-trials.png?v=020-preview" width="100%" alt="A trial awaiting the user's keep, defer or remove decision">
 
-`confirm` is reserved; the current client always opens the panel first.
+Keep ends the reminder. Removal needs a second confirmation and delegates to the native host manager; changed declarations require re-marking first. Trials do not isolate permissions or automatically uninstall packages. Protected or in-use plugins remain subject to host restrictions.
 
-## Uninstall
+## 04 · Check reported startup state
 
-Remove Bingo in **Settings → Plugins**, then restart the app once. For a source install made with the local script, quit the app first and run:
+Acceptance shows up to 30 recently changed plugins, or current plugins when there are no changes: active, failed, disabled, pending or unknown. Refresh reads current host state.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-desktop.ps1 -Uninstall
-```
+<img src="assets/screenshot-checks.png?v=020-preview" width="100%" alt="Dark-mode acceptance checklist showing active, failed and unknown examples">
 
-The local uninstaller removes only Bingo's dependency, bundle entry and package directory, preserving other plugin configuration. Optionally remove `~/.dsh/bingo/` to clear detection state and logs.
+Active means host entries are running. Business behavior and the actual loaded code version require separate verification. Missing reliable information stays unknown.
 
-## Privacy and compatibility
+## A small button that stays out of the way
 
-Bingo reads the local profile manifest and uses same-origin `/bingo/*` routes. It sends no telemetry, loads no third-party assets, and stores state and logs locally.
+Drag it near an edge to snap; its position survives restarts. Open the panel with `Ctrl+Alt+B` (`Cmd+Alt+B` on macOS). Supports light/dark themes, zero runtime dependencies and MIT licensing. Web mode offers page refresh.
 
-Requires Node.js 20+ and DeepSeek Harness 0.2.0-rc.1+. Uses public Cordis APIs without modifying DSH core.
+## Local data and compatibility
 
-## Troubleshooting
+History, trials and logs stay on this machine, without conversation content or telemetry. A confirmed removal delegates package operations to the host, which may contact its configured registry.
 
-- No button: restart once after installation and confirm the plugin is enabled.
-- Restart disabled: use the desktop app and check `allowRestart`.
-- Restart failed: inspect `~/.dsh/bingo/restart.log`, resolve executable or permission problems, and retry.
+All images are **real browser captures using mock data**, without real accounts or conversations. The cover presents the product concept; component close-ups show the actual client. Recreate them using the [preview instructions](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/preview/README.md).
 
-[MIT License](LICENSE)
+Requires Node.js 20+ and DeepSeek Harness 0.2.0-rc.1+. Full restart needs the official Electron desktop app; inventory and native removal need host support. See the [development notes](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md) for configuration and local installation.
+
+[Report an issue](https://github.com/kongkongya367-glitch/dsh-bingo-ren/issues) · [MIT License](LICENSE)

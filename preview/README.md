@@ -24,18 +24,22 @@ npm run build
 
 可读源码位于 `preview/src/`，压缩产物位于 `client/`。客户端 JS/CSS 总大小预算为 52 KB。
 
-## 截图
+## 重拍 README 预览
 
-`assets/` 中的按钮、面板、新插件弹窗和深色面板是离线设计渲染，脚本为 `render-screenshots.mjs`；`screenshot-dragged.png` 是模拟页面的浏览器截图。截图中的聊天、账号和插件列表均为示例。
-
-可在仓库根目录用 Edge 重新拍摄预览：
-
-```powershell
-$edge = Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe'
-$previewRoot = (Get-Location).Path
-$previewUrl = ([System.Uri](Join-Path $previewRoot 'preview\index.html')).AbsoluteUri
-$previewProfile = Join-Path $env:TEMP ('bingo-preview-' + [guid]::NewGuid().ToString('N'))
-& $edge --headless=new --disable-gpu --hide-scrollbars --window-size=1440,900 --virtual-time-budget=2000 --user-data-dir=$previewProfile --allow-file-access-from-files --screenshot="$previewRoot\assets\screenshot-panel.png" "$previewUrl`?scene=panel"
+```sh
+node preview/capture-readme.mjs
 ```
 
-浏览器路径可按安装位置调整。拍摄前确认使用的是模拟页面，检查面板边界、文字对比度及截图背景。
+需要支持全局 WebSocket 的 Node.js（推荐 22+）和 Edge/Chromium。可通过 `BINGO_EDGE` 指定浏览器路径。脚本使用独立的 headless 浏览器 profile，直接拍摄当前 `client/` 界面并裁切到组件边界，不访问真实 Harness profile。
+
+输出到 `assets/`：
+
+- `readme-hero.png`：从 `readme-cover.html` 渲染的产品概览封面，其中面板图片来自实际客户端。
+- `screenshot-new-plugin.png`：新插件提醒与试用入口。
+- `screenshot-history.png`、`screenshot-trials.png`、`screenshot-checks.png`：插件管家三个页签。
+- `screenshot-panel.png`、`screenshot-panel-dark.png`：新版重启面板。
+- `screenshot-button.png`、`screenshot-dragged.png`：按钮与真实鼠标拖动后的面板位置。
+
+上述图片均使用模拟数据，不包含真实账号、对话或插件清单。`render-screenshots.mjs` 是早期离线设计渲染脚本，当前 README 使用浏览器截图脚本。
+
+封面用 HTML/CSS 排版，组件截图不改写运行时 UI。检查封面、中文字体、组件边界和各图片链接后再提交。
