@@ -10,6 +10,9 @@
 | `?scene=pending` | 新插件弹窗 |
 | `?scene=restarting` | 重启等待态 |
 | `?scene=web` | Web 降级状态 |
+| `?scene=history` | 插件变更记录 |
+| `?scene=trials` | 待决定的试用插件 |
+| `?scene=checks` | 运行状态验收 |
 | `&theme=dark` | 深色主题 |
 | `&dev=1` | 场景切换工具 |
 
@@ -19,7 +22,7 @@
 npm run build
 ```
 
-可读源码位于 `preview/src/`，压缩产物位于 `client/`。客户端 JS/CSS 总大小预算为 38 KB。
+可读源码位于 `preview/src/`，压缩产物位于 `client/`。客户端 JS/CSS 总大小预算为 52 KB。
 
 ## 截图
 

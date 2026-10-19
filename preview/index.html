@@ -405,7 +405,7 @@
     var theme = params.get('theme') === 'dark' ? 'dark' : 'light';
     var pendingVisible = scene === 'pending' || scene === 'panel-pending';
 
-    window.__DSH_BINGO_VERSION__ = '0.1.3';
+    window.__DSH_BINGO_VERSION__ = '0.2.0';
     window.__DSH_BINGO_POSITION__ = 'bottom-left';
     window.__DSH_BINGO_FORCE_THEME__ = theme;
     window.__DSH_BINGO_CLIENT_CSS__ = new URL('../client/bingo-client.css', location.href).href + '?v=preview';
@@ -416,17 +416,32 @@
       { name: 'dsh-plugin-market', version: '1.8.0' },
       { name: 'dsh-theme-paper', version: '0.2.1' }
     ];
+    var demoHistory = [
+      { id: 'change-1', kind: 'added', name: 'dsh-whale-widget', to: '0.4.2', at: new Date().toISOString(), source: 'running' },
+      { id: 'change-2', kind: 'updated', name: 'dsh-plugin-market', from: '1.7.0', to: '1.8.0', at: new Date().toISOString(), source: 'startup' },
+      { id: 'change-3', kind: 'removed', name: 'dsh-example-old', from: '0.1.0', at: new Date().toISOString(), source: 'running' }
+    ];
+    var demoTrials = scene === 'trials' ? [{ name: packages[0].name, version: packages[0].version, id: 'trial-demo', createdAt: new Date().toISOString(), reviewDue: true, versionChanged: false, removable: true }] : [];
+
+    function activityPayload() {
+      return { ok: true, history: demoHistory, packages: packages, trials: demoTrials, canRemove: true, warning: null,
+        acceptance: packages.map(function (p, i) { return { name: p.name, version: p.version, installedVersion: p.version, state: ['active', 'failed', 'unknown'][i % 3] }; })
+      };
+    }
 
     function statusPayload() {
       var web = scene === 'web';
       return {
         ok: true,
-        version: '0.1.3',
+        version: '0.2.0',
         desktop: !web,
         canRestart: !web,
         restarting: scene === 'restarting',
         pollMs: 4000,
         position: 'bottom-left',
+        activity: { historyCount: demoHistory.length, trialCount: demoTrials.length,
+          reviewCount: demoTrials.filter(function (t) { return t.reviewDue; }).length,
+          reviewSignature: demoTrials.filter(function (t) { return t.reviewDue; }).map(function (t) { return t.id; }).join(',') },
         profile: { name: 'desktop', dir: 'C:\\Users\\example\\.dsh\\profiles\\desktop' },
         pending: pendingVisible ? {
           signature: 'sha256:9f3c1d7a5b27',
@@ -457,6 +472,20 @@
       var url = typeof input === 'string' ? input : (input && input.url) || '';
       var method = (init && init.method) || (input && input.method) || 'GET';
       if (url.indexOf('/bingo/status') !== -1) return reply(statusPayload());
+      if (url.indexOf('/bingo/activity') !== -1) return reply(activityPayload());
+      if (url.indexOf('/bingo/trials') !== -1) {
+        var body = JSON.parse(init.body);
+        var pkg = packages.filter(function (p) { return p.name === body.name; })[0];
+        if (body.action === 'start' && pkg) {
+          demoTrials = demoTrials.filter(function (t) { return t.name !== pkg.name; });
+          demoTrials.push({ name: pkg.name, version: pkg.version, id: 'trial-' + Date.now(), createdAt: new Date().toISOString(), reviewDue: false, versionChanged: false, removable: true });
+        } else if (body.action === 'snooze') demoTrials.forEach(function (t) { if (t.id === body.id) t.reviewDue = false; });
+        else if (body.action === 'keep' || body.action === 'remove') {
+          demoTrials = demoTrials.filter(function (t) { return t.id !== body.id; });
+          if (body.action === 'remove' && body.confirmed) packages = packages.filter(function (p) { return p.name !== body.name; });
+        }
+        return reply({ ok: true });
+      }
       if (url.indexOf('/bingo/restart') !== -1) return reply({ ok: true, scheduled: true }, 202);
       if (url.indexOf('/bingo/dismiss') !== -1) {
         pendingVisible = false;
@@ -472,6 +501,7 @@
       ['pending', '新插件弹层'],
       ['restarting', '重启等待'],
       ['web', 'Web 降级']
+      ,['history', '变更记录'], ['trials', '临时试用'], ['checks', '验收清单']
     ];
     var bar = document.getElementById('devbar');
     if (params.get('dev') === '1' && bar) {
@@ -493,6 +523,10 @@
     }
 
     window.addEventListener('dsh-bingo:ready', function () {
+      if (['history', 'trials', 'checks'].indexOf(scene) !== -1) {
+        window.__DSH_BINGO__.openManager(scene);
+        return;
+      }
       if (['panel', 'panel-pending', 'web'].indexOf(scene) === -1) return;
       window.setTimeout(function () {
         if (window.__DSH_BINGO__ && window.__DSH_BINGO__.openPanel) window.__DSH_BINGO__.openPanel();

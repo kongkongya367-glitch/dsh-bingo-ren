@@ -6,7 +6,7 @@
 
   var VERSION = typeof window.__DSH_BINGO_VERSION__ === 'string' && window.__DSH_BINGO_VERSION__
     ? window.__DSH_BINGO_VERSION__
-    : '0.1.3';
+    : '0.2.0';
   var API = '/bingo';
   var CSS_URL = typeof window.__DSH_BINGO_CLIENT_CSS__ === 'string' && window.__DSH_BINGO_CLIENT_CSS__
     ? window.__DSH_BINGO_CLIENT_CSS__
@@ -55,6 +55,7 @@
     '<p class="bingo-note" data-el="note">会中断正在进行的任务，约 3 秒恢复</p>',
     '<p class="bingo-error" data-el="error" role="alert" hidden></p>',
     '<div class="bingo-meta" data-el="meta" data-failed="false" hidden>' + ICON_CLOCK + '<span data-el="metaText"></span></div>',
+    '<button class="bingo-btn bingo-btn--ghost bingo-manage" data-el="manage" type="button">插件记录 · 试用 · 验收</button>',
     '<footer class="bingo-foot"><span>快捷键</span><span class="bingo-kbd" data-el="kbd">Ctrl + Alt + B</span></footer>',
     '<p class="bingo-sr" data-el="live" role="status" aria-live="polite"></p>',
     '</section>',
@@ -62,16 +63,24 @@
     '<div class="bingo-dialog" data-el="dialog" role="alertdialog" aria-modal="true" aria-labelledby="bingo-dialog-title" aria-describedby="bingo-dialog-desc" tabindex="-1">',
     '<div class="bingo-dialog__icon" aria-hidden="true">' + ICON_SPARK + '</div>',
     '<h2 class="bingo-dialog__title" id="bingo-dialog-title">检测到新插件</h2>',
-    '<p class="bingo-dialog__desc" id="bingo-dialog-desc">是否要 Bingo 一下？重启 Harness 后新插件才会生效。</p>',
+    '<p class="bingo-dialog__desc" id="bingo-dialog-desc">是否要 Bingo 一下？部分插件需要重启后生效。</p>',
     '<ul class="bingo-pkgs bingo-pkgs--dialog" data-el="dialogList"></ul>',
     '<div class="bingo-more bingo-more--dialog" data-el="dialogMore" hidden></div>',
     '<div class="bingo-dialog__actions">',
     '<button class="bingo-btn bingo-btn--primary" data-el="dialogPrimary" type="button">立即 Bingo</button>',
     '<button class="bingo-btn bingo-btn--ghost" data-el="dialogLater" type="button">稍后</button>',
     '</div>',
+    '<button class="bingo-btn bingo-btn--ghost bingo-manage" data-el="tryGroup" type="button">本次新增设为试用</button>',
     '<p class="bingo-dialog__hint">稍后可从左下角的 Bingo 面板随时处理</p>',
     '</div>',
     '</div>',
+    '<div class="bingo-layer bingo-layer--dialog" data-el="deskLayer" hidden>',
+    '<section class="bingo-desk" data-el="desk" role="dialog" aria-modal="true" aria-labelledby="bingo-desk-title" tabindex="-1">',
+    '<header class="bingo-head"><strong id="bingo-desk-title">Bingo 插件管家</strong><button class="bingo-iconbtn" data-el="deskClose" type="button" aria-label="关闭插件管家">' + ICON_CLOSE + '</button></header>',
+    '<nav class="bingo-tabs" aria-label="插件管理"><button data-el="historyTab" type="button">变更记录</button><button data-el="trialsTab" type="button">临时试用</button><button data-el="checksTab" type="button">验收清单</button></nav>',
+    '<div class="bingo-desk-toolbar"><span data-el="deskMessage" role="status" aria-live="polite"></span><button class="bingo-btn bingo-btn--ghost" data-el="deskRefresh" type="button">刷新</button></div>',
+    '<div class="bingo-desk-content" data-el="deskContent"></div>',
+    '</section></div>',
     '<div class="bingo-layer bingo-layer--restart" data-el="restartLayer" hidden>',
     '<div class="bingo-restart" data-el="restartCard" role="status" aria-live="assertive" tabindex="-1">',
     '<span class="bingo-spinner" aria-hidden="true"></span>',
@@ -105,6 +114,13 @@
     posUser: false,
     drag: null,
     suppressClick: false,
+    desk: false,
+    deskTab: 'history',
+    activity: null,
+    activityBusy: false,
+    activityLoading: false,
+    removeConfirm: '',
+    reviewSeen: Object.create(null),
   };
 
   var host = null;
@@ -375,7 +391,7 @@
       options.signal = ctrl.signal;
       timer = window.setTimeout(function () {
         try { ctrl.abort(); } catch (err) {}
-      }, REQUEST_TIMEOUT);
+      }, (init && init.timeout) || REQUEST_TIMEOUT);
     }
     return fetch(path, options).then(function (res) {
       if (timer) window.clearTimeout(timer);
@@ -425,6 +441,11 @@
       if (data.restarting) enterRestarting(true);
       else if (S.restarting && restartCycle === S.restartCycle) leaveRestarting();
       handlePending();
+      var review = data.activity;
+      if (review && review.reviewCount > 0 && review.reviewSignature && !S.reviewSeen[review.reviewSignature] && !S.restarting && !S.dialog && !S.panel && !S.desk) {
+        S.reviewSeen[review.reviewSignature] = true;
+        openDesk('trials');
+      }
       if (!S.emitted) {
         S.emitted = true;
         try {
@@ -471,7 +492,7 @@
       if (S.dialog) closeDialog(false);
       return;
     }
-    if (signature && signature !== S.dialogSig && !S.seen[signature] && AUTO_DIALOG && !S.restarting) {
+    if (signature && signature !== S.dialogSig && !S.seen[signature] && AUTO_DIALOG && !S.restarting && !S.desk) {
       S.seen[signature] = true;
       openDialog();
       return;
@@ -570,6 +591,11 @@
     els.later.textContent = '稍后';
     els.refresh.hidden = !(status && status.desktop === false);
     els.note.textContent = noteText();
+    if (els.manage) {
+      var reviews = status && status.activity && status.activity.reviewCount || 0;
+      els.manage.textContent = reviews ? '插件管家 · ' + reviews + ' 个试用待决定' : '插件记录 · 试用 · 验收';
+    }
+    if (els.tryGroup) els.tryGroup.disabled = S.busy || restarting;
 
     els.meta.hidden = !(status && status.lastRestart);
     if (status && status.lastRestart) {
@@ -746,6 +772,7 @@
     S.busy = false;
     closePanel(false);
     closeDialog(false);
+    if (S.desk) closeDesk(false);
     els.restartLayer.hidden = false;
     render();
     live('正在重启 Harness，页面会自动恢复');
@@ -771,16 +798,218 @@
     }
   }
 
+  function activityError(error) {
+    var code = error && error.data && error.data.code;
+    var messages = {
+      'version-changed': '插件版本已变化，请刷新后重新标记试用。',
+      'trial-changed': '试用记录已变化，请刷新后重试。',
+      'not-trialable': '该插件无法标记试用，Bingo 本身不支持试用移除。',
+      'not-removable': '宿主不允许移除此插件，请到 Harness 插件页查看。',
+      'manager-unavailable': '宿主移除接口暂不可用，请到 Harness 插件页操作。',
+      'native-remove-refused': '宿主未完成移除，请到 Harness 插件页查看原因；可能需要先退出应用。',
+      'removal-incomplete': '插件清单仍包含该插件，请到 Harness 插件页确认移除结果。',
+      'operation-busy': '有操作正在进行，请稍候。',
+      'state-unwritable': '记录无法保存，请检查本机状态目录权限。',
+      'trial-limit': '试用列表已满，请先保留或移除部分试用插件。'
+    };
+    return messages[code] || '操作未完成，请刷新查看当前状态后重试。';
+  }
+
+  function deskButton(label, handler, disabled) {
+    var button = el('button', 'bingo-btn bingo-btn--ghost', label);
+    button.type = 'button';
+    button.disabled = !!(disabled || S.activityBusy);
+    button.addEventListener('click', handler);
+    return button;
+  }
+
+  function renderDesk() {
+    if (!S.desk || !els.deskContent) return;
+    var content = els.deskContent;
+    while (content.firstChild) content.removeChild(content.firstChild);
+    ['history', 'trials', 'checks'].forEach(function (tab) {
+      els[tab + 'Tab'].setAttribute('aria-pressed', S.deskTab === tab ? 'true' : 'false');
+    });
+    els.deskClose.disabled = S.activityBusy;
+    els.deskRefresh.disabled = S.activityBusy || S.activityLoading;
+    var data = S.activity;
+    if (!data) { content.appendChild(el('p', 'bingo-muted', '正在读取插件信息…')); return; }
+    var note = function (text) { content.appendChild(el('p', 'bingo-muted', text)); };
+    var card = function (title, detail) {
+      var row = el('article', 'bingo-record');
+      row.appendChild(el('strong', '', title));
+      if (detail) row.appendChild(el('p', 'bingo-muted', detail));
+      content.appendChild(row);
+      return row;
+    };
+    if (S.deskTab === 'history') {
+      note('记录启用 Bingo 后观察到的变化，最近显示 100 条。版本以插件清单声明为准；不记录聊天内容。');
+      var kinds = { added: '新增', updated: '版本变更', removed: '移除', 'trial-started': '开始试用', 'trial-kept': '保留试用插件', 'trial-removed': '移除试用插件' };
+      if (!data.history.length) note('还没有变更记录。下次安装、更新或移除插件后会出现在这里。');
+      data.history.forEach(function (item) {
+        var detail = formatTime(item.at) + (item.source === 'startup' ? ' · 启动时发现' : '');
+        if (item.kind === 'updated') detail += ' · ' + (item.from || '未声明') + ' → ' + (item.to || '未声明');
+        else if (item.to || item.from) detail += ' · ' + (item.to || item.from);
+        card((kinds[item.kind] || '变更') + ' · ' + item.name, detail);
+      });
+    } else if (S.deskTab === 'trials') {
+      note('安装后标记试用，下次启动提醒你决定。试用不隔离插件权限，也不会自动卸载；“保留”只结束提醒。');
+      var controls = el('div', 'bingo-trial-controls');
+      var select = el('select', 'bingo-select');
+      select.setAttribute('aria-label', '选择要试用的已安装插件');
+      data.packages.forEach(function (pkg) {
+        var option = el('option', '', pkg.name);
+        option.value = pkg.name;
+        select.appendChild(option);
+      });
+      select.disabled = S.activityBusy;
+      controls.appendChild(select);
+      controls.appendChild(deskButton('标记试用', function () {
+        var pkg = data.packages.filter(function (p) { return p.name === select.value; })[0];
+        if (pkg) performTrial('start', pkg);
+      }, !data.packages.length));
+      content.appendChild(controls);
+      if (!data.trials.length) note('暂无试用插件。也可以在新插件提醒中选择“本次新增设为试用”。');
+      data.trials.forEach(function (trial) {
+        var row = card(trial.name, (trial.reviewDue ? '待决定' : '试用中') + ' · ' + (trial.version || '未声明版本') + ' · ' + formatTime(trial.createdAt));
+        var actions = el('div', 'bingo-record-actions');
+        actions.appendChild(deskButton('保留', function () { performTrial('keep', trial); }));
+        actions.appendChild(deskButton('下次启动再问', function () { performTrial('snooze', trial); }, !trial.reviewDue));
+        if (trial.versionChanged) {
+          row.appendChild(el('p', 'bingo-muted', '安装声明已变化。重新标记后才能移除，避免误删替换后的版本。'));
+          actions.appendChild(deskButton('重新标记', function () {
+            var pkg = data.packages.filter(function (p) { return p.name === trial.name; })[0];
+            if (pkg) performTrial('start', pkg);
+          }));
+        }
+        actions.appendChild(deskButton(S.removeConfirm === trial.id ? '确认移除' : '移除', function () {
+          if (S.removeConfirm !== trial.id) {
+            S.removeConfirm = trial.id;
+            els.deskMessage.textContent = '确认移除 ' + trial.name + '？由宿主管理器执行，相关功能将停止，其他会话也会受影响。';
+            renderDesk();
+          } else performTrial('remove', trial);
+        }, !trial.removable || !data.canRemove));
+        if (S.removeConfirm === trial.id) actions.appendChild(deskButton('取消', function () { S.removeConfirm = ''; renderDesk(); }));
+        row.appendChild(actions);
+        if (!trial.removable && !trial.versionChanged) row.appendChild(el('p', 'bingo-muted', '当前不能在 Bingo 中移除，请在 Harness 插件页查看。'));
+      });
+    } else {
+      note('宿主连接正常。检查最近变更的插件，最多 30 个；无变更时显示当前插件。');
+      note('“运行中”表示宿主条目已启动，不代表插件业务功能或运行代码版本已独立测试。仅有安装文件时不会判定通过。');
+      var states = { active: '运行中', failed: '加载失败', disabled: '已禁用', pending: '等待启动', unknown: '无法确认' };
+      if (!data.acceptance.length) note('当前没有可验收的插件。');
+      data.acceptance.forEach(function (item) {
+        var row = card(item.name, '安装版本：' + (item.installedVersion || '未知') + ' · 声明：' + (item.version || '未声明'));
+        var badge = el('span', 'bingo-check-state', states[item.state] || '无法确认');
+        badge.setAttribute('data-state', item.state);
+        row.appendChild(badge);
+      });
+    }
+  }
+
+  function loadActivity() {
+    if (S.activityLoading) return Promise.resolve();
+    S.activityLoading = true;
+    els.deskMessage.textContent = '正在读取…';
+    els.deskRefresh.disabled = true;
+    return request(API + '/activity', { timeout: 15000 }).then(function (data) {
+      if (!data || data.ok === false) throw new Error('Bad activity');
+      S.activity = data;
+      els.deskMessage.textContent = data.warning || '记录仅保存在本机';
+    }).catch(function (error) {
+      els.deskMessage.textContent = activityError(error);
+    }).then(function () {
+      S.activityLoading = false;
+      renderDesk();
+    });
+  }
+
+  function openDesk(tab) {
+    if (S.restarting) return;
+    if (!S.desk) rememberFocus();
+    closePanel(false);
+    S.desk = true;
+    S.deskTab = tab || 'history';
+    S.removeConfirm = '';
+    els.deskLayer.hidden = false;
+    renderDesk();
+    loadActivity();
+    try { els.desk.focus({ preventScroll: true }); } catch (err) {}
+  }
+
+  function closeDesk(returnFocus) {
+    if (S.activityBusy && returnFocus !== false) return;
+    S.desk = false;
+    S.removeConfirm = '';
+    els.deskLayer.hidden = true;
+    if (returnFocus !== false) restoreFocus();
+  }
+
+  function performTrial(action, item) {
+    if (S.activityBusy || S.activityLoading) return;
+    S.activityBusy = true;
+    renderDesk();
+    els.deskMessage.textContent = action === 'remove' ? '正在由宿主管理器移除，请稍候…' : '正在保存…';
+    var result;
+    request(API + '/trials', { method: 'POST', timeout: 120000, body: JSON.stringify({
+      action: action, name: item.name, id: item.id, version: item.version, confirmed: action === 'remove'
+    }) }).then(function (data) {
+      result = data;
+      S.removeConfirm = '';
+      return loadActivity();
+    }).then(function () {
+      els.deskMessage.textContent = result && result.restartRequired ? '已移除，宿主提示需要重启。' : '操作完成';
+    }).catch(function (error) {
+      els.deskMessage.textContent = activityError(error);
+    }).then(function () {
+      S.activityBusy = false;
+      renderDesk();
+      pollOnce(true);
+    });
+  }
+
+  function trialPendingGroup() {
+    if (!S.pending || S.busy) return;
+    var packages = (S.pending.packages || []).filter(function (p) { return p.name !== 'dsh-bingo-ren'; });
+    if (!packages.length) return;
+    var signature = S.pending.signature;
+    S.busy = true;
+    render();
+    var sequence = Promise.resolve();
+    packages.forEach(function (pkg) {
+      sequence = sequence.then(function () {
+        return request(API + '/trials', { method: 'POST', body: JSON.stringify({ action: 'start', name: pkg.name, version: pkg.version }) });
+      });
+    });
+    sequence.then(function () {
+      S.busy = false;
+      if (S.pending && S.pending.signature === signature) {
+        dismissPending('trial');
+        openDesk('trials');
+      } else {
+        render();
+        live('原有插件已标记试用，另有新的插件待处理');
+      }
+    }).catch(function (error) {
+      S.busy = false;
+      closeDialog(false);
+      openPanel();
+      showError(activityError(error));
+      render();
+    });
+  }
+
   function trapTab(event) {
-    var nodes = els.dialog.querySelectorAll('button:not([disabled])');
+    var container = S.desk ? els.desk : els.dialog;
+    var nodes = container.querySelectorAll('button:not([disabled]), select:not([disabled])');
     if (!nodes.length) return;
     var first = nodes[0];
     var last = nodes[nodes.length - 1];
     var active = activeElement();
-    if (event.shiftKey && (active === first || !els.dialog.contains(active))) {
+    if (event.shiftKey && (active === first || !container.contains(active))) {
       event.preventDefault();
       last.focus();
-    } else if (!event.shiftKey && (active === last || !els.dialog.contains(active))) {
+    } else if (!event.shiftKey && (active === last || !container.contains(active))) {
       event.preventDefault();
       first.focus();
     }
@@ -791,10 +1020,12 @@
     if ((event.ctrlKey || event.metaKey) && event.altKey && (key === 'b' || key === 'B' || event.code === 'KeyB')) {
       if (S.restarting) return;
       event.preventDefault();
+      if (S.desk) { closeDesk(); return; }
       togglePanel();
       return;
     }
     if (key === 'Escape' || key === 'Esc') {
+      if (S.desk) { event.preventDefault(); closeDesk(); return; }
       if (S.dialog) {
         event.preventDefault();
         event.stopPropagation();
@@ -807,7 +1038,7 @@
         return;
       }
     }
-    if (key === 'Tab' && S.dialog) trapTab(event);
+    if (key === 'Tab' && (S.dialog || S.desk)) trapTab(event);
   }
 
   function onPointerDown(event) {
@@ -883,6 +1114,19 @@
   }
 
   function bind() {
+    els.manage.addEventListener('click', function () { openDesk('history'); });
+    els.tryGroup.addEventListener('click', trialPendingGroup);
+    els.deskClose.addEventListener('click', function () { closeDesk(); });
+    els.deskRefresh.addEventListener('click', loadActivity);
+    els.deskLayer.addEventListener('pointerdown', function (event) { if (event.target === els.deskLayer) closeDesk(); });
+    ['history', 'trials', 'checks'].forEach(function (tab) {
+      els[tab + 'Tab'].addEventListener('click', function () {
+        if (S.activityBusy) return;
+        S.deskTab = tab;
+        S.removeConfirm = '';
+        renderDesk();
+      });
+    });
     els.pill.addEventListener('click', function (event) {
       if (S.suppressClick) {
         event.preventDefault();
@@ -929,7 +1173,7 @@
   }
 
   function expose() {
-    window.__DSH_BINGO__ = { openPanel: openPanel };
+    window.__DSH_BINGO__ = { openPanel: openPanel, openManager: openDesk };
   }
 
   function mount() {

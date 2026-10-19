@@ -2,6 +2,7 @@
 
 ## 架构
 
+- `lib/activity.js`：按 profile 隔离的变更记录、试用状态与宿主运行状态验收。
 - `lib/index.js`：Cordis 宿主插件，负责注入、路由、插件清单检测和重启调度。
 - `lib/restart-helper.cjs`：独立重启进程，仅结束指定的 shell/host PID，等待退出和端口释放，再启动应用。
 - `preview/src/`：可读的客户端 JS/CSS；`npm run build` 生成 `client/` 发布文件。
@@ -69,3 +70,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-deskto
 发布包只包含 `lib/`、`client/`、插件 patch、README、许可证、图标和预览图片。内部记录、测试、工具和临时目录不进入 npm 包。
 
 公共文档及模拟数据使用示例路径，不写入个人用户目录或真实 profile 内容。发布流程见 [PUBLISH.md](PUBLISH.md)。
+
+## 插件生命周期功能（0.2.0）
+
+- `GET /bingo/activity` 返回变更记录、试用列表、可标记插件和验收状态；只在打开管理面板或手动刷新时读取宿主完整清单。
+- `POST /bingo/trials` 支持 start、keep、snooze、remove。移除必须提交当前试用 ID 和 confirmed=true，声明版本必须仍然一致，并通过宿主 removable 检查。
+- 使用公开的 pluginManager.listBundles/listPlugins/removeBundle。没有可靠服务时显示无法确认或引导原生插件页，不直接改写 profile 或删除包目录。
+- 活动文件为状态目录下的 activity-<profile 哈希>.json，原子写入。保留 200 条历史、最多 100 个试用及 30 个验收目标。
+- 同进程重组共享记录与移除互斥状态，避免旧请求覆盖记录或在移除期间重启。
+- 运行状态与声明版本分别展示。文件存在、包版本可读不能证明插件已启动或新代码已加载。
+- 客户端 JS/CSS 总预算调整为 52 KB，运行时仍无第三方依赖。
+
+可选真实浏览器回归：`node test/browser-activity.mjs`（需要 Chromium/Edge 及支持全局 WebSocket 的 Node.js）。仅使用模拟页面和独立浏览器 profile，不操作真实应用。

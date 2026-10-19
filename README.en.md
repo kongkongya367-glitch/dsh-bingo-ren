@@ -48,6 +48,16 @@ The new-plugin dialog offers **立即 Bingo** (Restart now) and **稍后** (Late
 
 Full restart requires the official Electron desktop app. Web mode disables restart and offers a page refresh. The interface currently uses Chinese labels.
 
+## Plugin management
+
+Open **插件记录 · 试用 · 验收** in the Bingo panel.
+
+- **History:** records observed additions, declared-version changes, removals and trial decisions per profile. Keeps 200 entries locally and shows the newest 100. The first run establishes a baseline; unchanged manifest ranges with changed lockfile resolutions are not detected.
+- **Trials:** mark an installed plugin, or mark newly added plugins from the prompt. On the next app boot, choose Keep, Ask next boot, or Remove. Removal needs explicit confirmation and uses the native host manager. Changed version declarations require re-marking first; Bingo cannot trial-remove itself. Trials do not isolate permissions or automatically uninstall packages.
+- **Acceptance:** shows up to 30 recently changed plugins, or current plugins when no changes exist. Reads native bundle and live-entry state: active, failed, disabled, pending or unknown. Active means host entries are running; it does not independently verify business behavior or the loaded code version. Missing host information and client-only bundles are not treated as success.
+
+History and trial state remain on this machine and do not include conversations. A confirmed removal delegates package operations to the host, which may use its configured registry. Protected or in-use plugins may require removal through the native plugin page.
+
 ## Configuration
 
 Configure the plugin row in the profile's `cordis.patch.yml`:

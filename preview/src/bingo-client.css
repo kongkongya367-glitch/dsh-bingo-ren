@@ -196,6 +196,40 @@
   animation: bingo-panel-in .18s cubic-bezier(.2, .8, .2, 1);
 }
 
+.bingo-manage { width: 100%; margin-top: 10px; }
+.bingo-desk {
+  width: min(680px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--bingo-border);
+  border-radius: 18px;
+  background: var(--bingo-surface);
+  box-shadow: var(--bingo-shadow-panel);
+  color: var(--bingo-ink);
+  pointer-events: auto;
+}
+.bingo-tabs { display: flex; gap: 6px; margin: 16px 0 12px; }
+.bingo-tabs button {
+  flex: 1; border: 1px solid var(--bingo-border); border-radius: 9px;
+  padding: 9px 6px; color: var(--bingo-ink-2); background: var(--bingo-surface-2); cursor: pointer;
+}
+.bingo-tabs button[aria-pressed="true"] { color: var(--bingo-on-ink); background: var(--bingo-ink); }
+.bingo-tabs button:focus-visible, .bingo-select:focus-visible { outline: 2px solid var(--bingo-accent); outline-offset: 2px; }
+.bingo-desk-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--bingo-ink-2); }
+.bingo-desk-toolbar .bingo-btn { width: auto; min-height: 30px; flex: none; padding: 5px 12px; }
+.bingo-desk-content { margin-top: 12px; }
+.bingo-muted { font-size: 12px; line-height: 1.6; color: var(--bingo-ink-2); overflow-wrap: anywhere; margin: 6px 0 10px; }
+.bingo-record { padding: 12px 0; border-bottom: 1px solid var(--bingo-border); font-size: 13px; overflow-wrap: anywhere; }
+.bingo-record strong { display: block; font-weight: 600; }
+.bingo-record-actions, .bingo-trial-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.bingo-record-actions .bingo-btn, .bingo-trial-controls .bingo-btn { width: auto; flex: none; min-height: 32px; padding: 5px 12px; }
+.bingo-select { flex: 1; min-width: 120px; max-width: 100%; border: 1px solid var(--bingo-border); border-radius: 8px; color: var(--bingo-ink); background: var(--bingo-surface); padding: 7px; }
+.bingo-check-state { display: inline-block; padding: 3px 8px; border-radius: 6px; background: var(--bingo-surface-2); color: var(--bingo-ink-2); font-size: 12px; }
+.bingo-check-state[data-state="active"] { color: var(--bingo-success); }
+.bingo-check-state[data-state="failed"] { color: var(--bingo-danger); }
+.bingo-check-state[data-state="pending"] { color: var(--bingo-warn); }
+
 .bingo-head { display: flex; align-items: center; gap: 7px; min-height: 22px; }
 .bingo-head__title { font-size: 13.5px; font-weight: 650; letter-spacing: -.005em; }
 .bingo-version {

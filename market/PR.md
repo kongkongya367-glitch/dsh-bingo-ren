@@ -16,6 +16,8 @@ Bingo 为 DeepSeek Harness 添加一个可拖动的重启按钮。它支持靠�
 - 零运行时依赖，不发送遥测，不向外发送数据。
 - Web 模式禁用重启并提供刷新页面。
 - 安装简介及默认文档使用中文，另附英文说明。
+- 按 profile 保存插件变更记录，支持试用复核与确认移除。
+- 验收清单读取宿主实际运行状态，信息不足时显示无法确认。
 
 仓库：https://github.com/kongkongya367-glitch/dsh-bingo-ren
 

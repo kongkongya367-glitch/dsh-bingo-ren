@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../preview/src/bingo-client.js', import.met
 const entry = '  if (document.body) boot();';
 assert.ok(source.includes(entry));
 
-function client(fetchStatus) {
+function client(fetchStatus, fetchImpl) {
   let timerId = 0;
   const timers = new Map();
   const window = {
@@ -17,10 +17,10 @@ function client(fetchStatus) {
   };
   const sandbox = vm.createContext({
     window, document: { hidden: false },
-    fetch: async () => ({ ok: true, json: fetchStatus }),
+    fetch: fetchImpl || (async () => ({ ok: true, json: fetchStatus })),
   });
   vm.runInContext(source.replace(entry,
-    '  window.testClient = { S:S, els:els, poll:pollOnce, enter:enterRestarting, error:handleRestartError, setRoot:function(value){root=value;} }; return;\n' + entry), sandbox);
+    '  window.testClient = { S:S, els:els, poll:pollOnce, enter:enterRestarting, error:handleRestartError, trialGroup:trialPendingGroup, handlePending:handlePending, setRoot:function(value){root=value;} }; return;\n' + entry), sandbox);
   const c = window.testClient;
   const node = () => ({
     hidden: true, style: {}, dataset: {}, setAttribute() {}, removeAttribute() {}, focus() {},
@@ -77,4 +77,33 @@ test('restart errors from the new-plugin dialog are shown in the panel', () => {
   assert.equal(c.els.panel.hidden, false);
   assert.equal(c.els.error.hidden, false);
   assert.match(c.els.error.textContent, /重启进程启动失败/);
+});
+
+test('new plugin prompts wait while the management dialog is open', () => {
+  const c = client(async () => failed());
+  c.S.desk = true;
+  c.S.pending = { signature: 'new-signature', packages: [] };
+  c.handlePending();
+  assert.equal(c.S.dialog, false);
+  assert.equal(c.S.seen['new-signature'], undefined);
+});
+
+test('marking a trial group never dismisses a newer pending plugin set', async () => {
+  const calls = [];
+  let finish;
+  const c = client(async () => failed(), (url, options) => {
+    calls.push({ url, options });
+    return new Promise(resolve => { finish = () => resolve({ ok: true, json: async () => ({ ok: true }) }); });
+  });
+  c.S.pending = { signature: 'first', packages: [{ name: 'first-plugin', version: '1' }] };
+  c.trialGroup();
+  await flush();
+  c.S.pending = { signature: 'newer', packages: [{ name: 'first-plugin', version: '1' }, { name: 'newer-plugin', version: '1' }] };
+  finish();
+  await flush();
+  assert.equal(c.S.busy, false);
+  assert.equal(c.S.pending.signature, 'newer');
+  assert.equal(c.S.desk, false);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, '/bingo/trials');
 });

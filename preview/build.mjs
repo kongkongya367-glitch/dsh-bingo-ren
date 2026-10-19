@@ -206,6 +206,6 @@ const cssSrc = readFileSync(join(SRC, 'bingo-client.css'), 'utf8');
 const cssOut = CSS_BANNER + minifyCss(shortenVars(shortenClasses(cssSrc)));
 writeFileSync(join(OUT, 'bingo-client.css'), cssOut);
 
-console.log('client/bingo-client.js  ' + jsOut.length + ' bytes');
-console.log('client/bingo-client.css ' + cssOut.length + ' bytes');
-console.log('total ' + (jsOut.length + cssOut.length) + ' bytes');
+console.log('client/bingo-client.js  ' + Buffer.byteLength(jsOut) + ' bytes');
+console.log('client/bingo-client.css ' + Buffer.byteLength(cssOut) + ' bytes');
+console.log('total ' + (Buffer.byteLength(jsOut) + Buffer.byteLength(cssOut)) + ' bytes');

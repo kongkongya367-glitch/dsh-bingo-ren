@@ -218,6 +218,29 @@ await test('acked pending is hidden', async () => {
   assert.equal(body.pending, null, res.body);
 });
 
+await test('activity HTTP endpoint includes durable changes and honest unknown acceptance', async () => {
+  const res = await rawRequest(port, { path: '/bingo/activity', headers: goodHeaders });
+  assert.equal(res.status, 200);
+  const data = JSON.parse(res.body);
+  assert.ok(data.history.some(e => e.name === 'dsh-newcomer' && e.kind === 'added'));
+  assert.ok(data.acceptance.every(e => e.state === 'unknown'));
+});
+let trialId;
+await test('trial can be marked over HTTP and persists in activity', async () => {
+  const res = await rawRequest(port, { method: 'POST', path: '/bingo/trials', headers: { ...goodHeaders, 'content-type': 'application/json' }, body: JSON.stringify({ action: 'start', name: 'dsh-newcomer', version: '2.3.4' }) });
+  assert.equal(res.status, 200);
+  const activity = JSON.parse((await rawRequest(port, { path: '/bingo/activity', headers: goodHeaders })).body);
+  trialId = activity.trials[0].id;
+  assert.equal(activity.trials[0].reviewDue, false);
+  assert.equal(activity.canRemove, false);
+});
+await test('keeping a trial over HTTP ends the reminder', async () => {
+  const res = await rawRequest(port, { method: 'POST', path: '/bingo/trials', headers: { ...goodHeaders, 'content-type': 'application/json' }, body: JSON.stringify({ action: 'keep', name: 'dsh-newcomer', id: trialId }) });
+  assert.equal(res.status, 200);
+  const activity = JSON.parse((await rawRequest(port, { path: '/bingo/activity', headers: goodHeaders })).body);
+  assert.equal(activity.trials.length, 0);
+});
+
 const clientFile = join(root, 'client', 'bingo-client.js');
 if (existsSync(clientFile)) {
   await test('GET /bingo/client.js serves javascript', async () => {

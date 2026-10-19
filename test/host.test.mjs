@@ -77,6 +77,7 @@ function createHostContext(options) {
   const services = {
     webServer,
     connection: opts.connection === undefined ? null : opts.connection,
+    pluginManager: opts.manager || null,
   };
   const logger = { info() {}, warn() {}, error() {}, debug() {} };
   return {
@@ -160,7 +161,7 @@ function setupRuntime(options) {
     fs.writeFileSync(path.join(stateDir, 'restart.log'), opts.logText, 'utf8');
   }
   const webServer = createFakeWebServer(opts.port);
-  const hostCtx = createHostContext({ webServer, connection: opts.connection });
+  const hostCtx = createHostContext({ webServer, connection: opts.connection, manager: opts.manager });
   const env = {
     DSH_BINGO_HOME: stateDir,
     DSH_PROFILE_DIR: profileDir,
@@ -923,6 +924,86 @@ test('recomposition detects an install before the previous detector has run', as
   t.after(() => second.dispose());
   await second.detectNow();
   assert.deepEqual(second.status().pending.packages, [{ name: 'dsh-new', version: '2.0.0' }]);
+});
+
+test('activity records version changes even when restart prompts are dismissed', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { example: '1' } } });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, { dependencies: { example: '2', extra: '1' } });
+  await ctx.runtime.detectNow();
+  ctx.runtime.dismiss(ctx.runtime.status().pending.signature);
+  const response = await callRoute(ctx.runtime, '/bingo/activity');
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.json().history.map(e => e.kind).sort(), ['added', 'updated']);
+  assert.equal(response.json().acceptance.every(p => p.state === 'unknown'), true);
+  const rejected = await callRoute(ctx.runtime, '/bingo/trials', {
+    method: 'POST', body: JSON.stringify({ action: 'start', name: 'extra' }), headers: { host: 'evil.example' },
+  });
+  assert.equal(rejected.status, 403);
+});
+
+test('trial removal requires confirmation, stable version, and native permission', async (t) => {
+  let ctx;
+  let calls = 0;
+  const manager = {
+    listBundles: async () => [{ name: 'example', enabled: true, removable: true, rows: [{ entryId: 'row' }] }],
+    listPlugins: async () => [{ entryId: 'row', enabled: true, fiberPhase: 'active' }],
+    removeBundle: async name => { calls++; assert.equal(name, 'example'); writeProfile(ctx.profileDir, { dependencies: {} }); return { application: 'applied' }; },
+  };
+  ctx = setupRuntime({ manager, packageJson: { dependencies: { example: '1' } } }); cleanup(ctx, t);
+  const post = body => callRoute(ctx.runtime, '/bingo/trials', { method: 'POST', body: JSON.stringify(body) });
+  assert.equal((await post({ action: 'start', name: 'example', version: '1' })).status, 200);
+  const trial = (await callRoute(ctx.runtime, '/bingo/activity')).json().trials[0];
+  assert.equal(trial.removable, true);
+  assert.equal((await post({ ...trial, action: 'remove' })).status, 400);
+  assert.equal(calls, 0);
+  writeProfile(ctx.profileDir, { dependencies: { example: '2' } });
+  assert.equal((await post({ ...trial, action: 'remove', confirmed: true })).json().code, 'version-changed');
+  assert.equal(calls, 0);
+  await post({ action: 'start', name: 'example', version: '2' });
+  const current = (await callRoute(ctx.runtime, '/bingo/activity')).json().trials[0];
+  const result = await post({ ...current, action: 'remove', confirmed: true });
+  assert.equal(result.status, 200);
+  assert.equal(calls, 1);
+  assert.equal((await callRoute(ctx.runtime, '/bingo/activity')).json().trials.length, 0);
+});
+
+test('native refusal keeps trial and protected bundles are never removed', async (t) => {
+  let calls = 0;
+  let removable = false;
+  const manager = { listBundles: async () => [{ name: 'example', removable }], removeBundle: async () => { calls++; return { application: 'failed', error: { code: 'stop-profile' } }; } };
+  const ctx = setupRuntime({ manager, packageJson: { dependencies: { example: '1' } } }); cleanup(ctx, t);
+  const post = body => callRoute(ctx.runtime, '/bingo/trials', { method: 'POST', body: JSON.stringify(body) });
+  await post({ action: 'start', name: 'example' });
+  const trial = (await callRoute(ctx.runtime, '/bingo/activity')).json().trials[0];
+  assert.equal((await post({ ...trial, action: 'remove', confirmed: true })).json().code, 'not-removable');
+  assert.equal(calls, 0);
+  removable = true;
+  assert.equal((await post({ ...trial, action: 'remove', confirmed: true })).json().code, 'native-remove-refused');
+  assert.equal((await callRoute(ctx.runtime, '/bingo/activity')).json().trials.length, 1);
+});
+
+test('native removal serializes mutations and blocks concurrent restart', async (t) => {
+  let finish;
+  let ctx;
+  const manager = { listBundles: async () => [{ name: 'example', removable: true }], removeBundle: () => new Promise(resolve => { finish = () => { writeProfile(ctx.profileDir, { dependencies: {} }); resolve({ application: 'applied' }); }; }) };
+  ctx = setupRuntime({ manager, desktop: true, runtimeToken: 'removal-recomposition', packageJson: { dependencies: { example: '1' } } }); cleanup(ctx, t);
+  const post = body => callRoute(ctx.runtime, '/bingo/trials', { method: 'POST', body: JSON.stringify(body) });
+  await post({ action: 'start', name: 'example' });
+  const trial = (await callRoute(ctx.runtime, '/bingo/activity')).json().trials[0];
+  const removal = post({ ...trial, action: 'remove', confirmed: true });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(ctx.runtime.scheduleRestart('button').body.code, 'operation-busy');
+  assert.equal((await post({ ...trial, action: 'keep' })).json().code, 'operation-busy');
+  const recomposed = createRuntime(createHostContext({ webServer: createFakeWebServer(), manager }), {}, {
+    env: ctx.env, stateDir: ctx.stateDir, profileDir: ctx.profileDir,
+    runtimeToken: 'removal-recomposition', version: '9.9.9', isDesktop: true, settleMs: 0,
+  });
+  t.after(() => recomposed.dispose());
+  assert.equal(recomposed.scheduleRestart('button').body.code, 'operation-busy');
+  finish();
+  assert.equal((await removal).status, 200);
+  assert.equal(ctx.spawnCalls.length, 0);
 });
 
 test('new app boot refreshes the baseline and clears pending', async (t) => {

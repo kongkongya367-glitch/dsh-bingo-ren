@@ -46,6 +46,7 @@ try {
 
   $required = @(
     'lib/index.js',
+    'lib/activity.js',
     'lib/restart-helper.cjs',
     'client/bingo-client.js',
     'client/bingo-client.css',

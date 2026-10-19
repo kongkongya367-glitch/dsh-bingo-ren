@@ -1,6 +1,6 @@
 # 发布 Bingo
 
-当前维护版本：`0.1.3`。npm 包为 [`dsh-bingo-ren`](https://www.npmjs.com/package/dsh-bingo-ren)，GitHub 附件见 [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)。社区插件目录尚未提交。
+当前维护版本：`0.2.0`。npm 包为 [`dsh-bingo-ren`](https://www.npmjs.com/package/dsh-bingo-ren)，GitHub 附件见 [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)。社区插件目录尚未提交。
 
 ## 发布前
 
