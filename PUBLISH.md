@@ -13,21 +13,19 @@ Bingo is not on npm and is not listed in the community plugin directory.
 | Package name | `dsh-bingo-ren` (chosen because `dsh-bingo` is already taken on npm) |
 | npm | **Not published** |
 | Community directory | **Not submitted**; draft only in `market/` |
-| Repository URL | **Placeholder** `https://github.com/your-name/dsh-bingo-ren` |
+| Repository URL | `https://github.com/kongkongya367-glitch/dsh-bingo-ren` (set) |
 | Version | `0.1.1` |
 
 ## 2. Replace the placeholders
 
-Search for `your-name` and `<owner>` / `<repo>` before releasing:
+Repository URLs are configured. Remaining release actions are npm sign-in/publish, tag, and the community PR:
 
 | File | Field / text | Replace with |
 | --- | --- | --- |
-| `package.json` | `repository.url` | `git+https://github.com/<owner>/<repo>.git` |
-| `package.json` | `homepage` | `https://github.com/<owner>/<repo>#readme` |
-| `package.json` | `bugs.url` | `https://github.com/<owner>/<repo>/issues` |
-| `README.md`, `README.zh.md` | "Release status" block | Remove it, or update it to the real published state |
-| `market/awesome-entry.yml` | `url`, `name` | Real owner/repo |
-| `market/PR.md` | `<owner>` / `<repo>` in title/body | Real owner/repo |
+| `package.json` | `repository.url`, `homepage`, `bugs.url` | Set to `kongkongya367-glitch/dsh-bingo-ren` |
+| `README.md`, `README.zh.md` | "Release status" block | Updated to the real repository; still says npm unpublished |
+| `market/awesome-entry.yml` | `url`, `name` | Set to `kongkongya367-glitch/dsh-bingo-ren` |
+| `market/PR.md` | repository URL and entry path | Set |
 | `market/screenshots.json` | — | Keep it in sync with the repository-root `screenshots.json` (already added) |
 | `CHANGELOG.md` | release date / notes | Keep accurate; never claim unpublished states |
 
@@ -37,7 +35,7 @@ the release owner's name or organisation if desired.
 ## 3. Pre-flight
 
 Requirements: Node.js 20+, npm 9+, the final `lib/` and `client/` files from the
-implementation tasks, and the three screenshots in `assets/`.
+implementation tasks, and the five screenshots in `assets/`.
 
 ```sh
 # 1. Syntax gates
@@ -111,7 +109,7 @@ Never put an npm token in this repository, in a script, or in chat.
 The directory is [`awesome-dsh-plugin/awesome-dsh-plugin`](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin).
 It is generated from `data/plugins/*.yml`; README edits are rejected.
 
-1. Copy `market/awesome-entry.yml` to `data/plugins/<owner>__<repo>.yml` in a fork,
+1. Copy `market/awesome-entry.yml` to `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml` in a fork,
    replacing every placeholder.
 2. Confirm `screenshots.json` is at this repository's root (already added; keep it
    in sync with `market/screenshots.json` when regenerating images). The directory
@@ -145,4 +143,4 @@ Discover/plugin market follows the merge, not the npm publish.
 - Otherwise deprecate the bad version:
   `npm deprecate dsh-bingo-ren@<version> "reason"` and publish a patch.
 - Do not hand-edit the generated READMEs in the directory. Fix your own
-  `data/plugins/<owner>__<repo>.yml` and open a follow-up PR.
+  `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml` and open a follow-up PR.

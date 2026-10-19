@@ -1,7 +1,8 @@
 # PR draft — awesome-dsh-plugin submission
 
-> **Status:** not opened. Replace `<owner>` / `<repo>` with the real GitHub
-> repository first. Do not claim the plugin is listed until the PR is merged.
+> **Status:** not opened. The repository is set to
+> `kongkongya367-glitch/dsh-bingo-ren`; do not claim the plugin is listed until
+> the PR is merged.
 
 ## PR title
 
@@ -14,9 +15,10 @@ Add dsh-bingo-ren
 ```markdown
 ### What
 
-Bingo adds a small button in the bottom-left corner of DeepSeek Harness. One click
-in its panel restarts the whole desktop app. While the app runs, it watches the profile
-manifest and offers the same restart when a new plugin is detected.
+Bingo adds a draggable button to DeepSeek Harness. It snaps to the nearest edge
+and remembers its position; one click in its panel restarts the whole desktop app.
+While the app runs, it watches the profile manifest and offers the same restart
+when a new plugin is detected.
 
 - Whole-app restart on the official Electron desktop app
 - New-plugin detection with a centered confirmation dialog and per-signature "later"
@@ -24,18 +26,18 @@ manifest and offers the same restart when a new plugin is detected.
 - No runtime dependencies; no network access
 - Web/headless mode: button visible, restart disabled, offers page refresh
 
-Repo: https://github.com/<owner>/<repo>
+Repo: https://github.com/kongkongya367-glitch/dsh-bingo-ren
 License: MIT
 
 ### Entry
 
-Adds one file, `data/plugins/<owner>__<repo>.yml`, in the format documented in
+Adds one file, `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml`, in the format documented in
 `contributing.md`. The plugin repository itself also declares `screenshots.json`.
 
 ### Checklist
 
-Check each item before opening the PR. None of them is claimed as done while the
-repository URL is still a placeholder.
+Check each item before opening the PR. The repository URL is set; the remaining
+checks depend on the pushed repository and its settings.
 
 - [ ] `package.json` declares `dsh.bundle.patch` (not only `dsh.client`)
 - [ ] Repository contains working code, not a placeholder
@@ -48,8 +50,8 @@ repository URL is still a placeholder.
 
 ## Steps
 
-1. Replace placeholders in `awesome-entry.yml` and `screenshots.json`.
-2. Copy `awesome-entry.yml` to `data/plugins/<owner>__<repo>.yml` in a fork.
+1. Confirm the repository URL and entry path in `awesome-entry.yml` (already set).
+2. Copy `awesome-entry.yml` to `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml` in a fork.
 3. Confirm `screenshots.json` is at the repository root (already added next to `package.json`); keep it in sync with `market/screenshots.json`.
 4. Ensure the repo has the `dsh-plugin` topic and is at least one day old.
 5. Open one PR against `main` that adds only the entry file.

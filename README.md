@@ -160,4 +160,4 @@ Optional cleanup: delete `~/.dsh/bingo/` (detection baseline, acknowledgements, 
 
 ---
 
-> **Release status (explicit placeholder):** Bingo is **not published yet**. The package is intended to publish as `dsh-bingo-ren` (`dsh-bingo` is already taken), but nothing has been published to npm and the project is **not listed** in the community plugin directory. The repository/homepage/bugs URLs in `package.json` use the `your-name` placeholder and must be replaced before release. See `PUBLISH.md` in the project repository.
+> **Release status:** Bingo is **not published to npm yet** and is **not listed** in the community plugin directory. The GitHub repository is `https://github.com/kongkongya367-glitch/dsh-bingo-ren`; npm publishing and the awesome-dsh-plugin PR still require the owner to sign in and run them. See `PUBLISH.md`.

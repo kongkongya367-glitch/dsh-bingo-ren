@@ -247,7 +247,7 @@ Helper（`lib/restart-helper.cjs`，CommonJS，在 Electron-as-node 中执行）
 - 市场：插件目录是 `awesome-dsh-plugin/awesome-dsh-plugin`（GitHub），上架方式是给该仓库提 PR 增加条目；dshmarket 每次打开实时读 `https://awesome-dsh-plugin.com/plugins.json`。C 需要抓取该仓库当前 README/条目格式，产出 `market/awesome-entry.yml` 或可粘贴条目 + `PUBLISH.md`（npm publish + PR 步骤 + 截图位置）。不得杜撰实际已上架。
 - `scripts/install.ps1`：本地开发安装到一个**非 desktop** 的自测 profile（示例 `dsh-plugin --profile bingo-selftest add link:<本目录>`），不碰运行中的 desktop profile；注释说明正式安装走插件设置。
 - `icon.svg`：单色/双色极简四角星 + 字母 B？要求 24–512 可缩放、深色背景可读；另导出 `assets/icon-512.png`（可用 Edge headless 渲染 SVG 截图，或 PowerShell/Inkscape 若有）。
-- 许可证 MIT，作者字段可写 `Bingo Contributors`，repository 可留占位（不得编造真实 URL；用 `https://github.com/your-name/dsh-bingo-ren` 并标注需替换）。
+- 许可证 MIT，作者字段 `Bingo Contributors`；repository 使用真实仓库 `https://github.com/kongkongya367-glitch/dsh-bingo-ren`。
 - 发布产物：`npm pack --dry-run` 通过；包内不含 test/preview/.research/SPEC（可用 .npmignore 或 files 白名单）。
 
 ## 8. 任务与写权限

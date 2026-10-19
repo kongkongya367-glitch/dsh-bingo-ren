@@ -38,11 +38,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-name/dsh-bingo-ren.git"
+    "url": "git+https://github.com/kongkongya367-glitch/dsh-bingo-ren.git"
   },
-  "homepage": "https://github.com/your-name/dsh-bingo-ren#readme",
+  "homepage": "https://github.com/kongkongya367-glitch/dsh-bingo-ren#readme",
   "bugs": {
-    "url": "https://github.com/your-name/dsh-bingo-ren/issues"
+    "url": "https://github.com/kongkongya367-glitch/dsh-bingo-ren/issues"
   },
   "publishConfig": {
     "access": "public"

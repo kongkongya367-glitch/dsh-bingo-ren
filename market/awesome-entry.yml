@@ -1,10 +1,10 @@
 # Template for an awesome-dsh-plugin submission.
 # Target path in the awesome-dsh-plugin/awesome-dsh-plugin repository:
-#   data/plugins/<owner>__<repo>.yml
-# Replace every <owner> / <repo> placeholder with the real GitHub repository
-# before opening the PR. Do not copy this comment block into the submitted file.
-url: https://github.com/<owner>/<repo>
-name: <owner>/<repo>
+#   data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml
+# Repository is set to kongkongya367-glitch/dsh-bingo-ren. Verify it before the PR.
+# Do not copy this comment block into the submitted file.
+url: https://github.com/kongkongya367-glitch/dsh-bingo-ren
+name: kongkongya367-glitch/dsh-bingo-ren
 category: ui
 description:
   en: 'Adds a draggable Bingo button to DeepSeek Harness. It snaps to the nearest edge, remembers its position, restarts the whole desktop app in one click, and offers the same restart when a new plugin is detected while the app is running.'
@@ -12,4 +12,4 @@ description:
 
 # Optional: prebuilt tarball on a GitHub Release. Uncomment after a release exists.
 # The asset name must be version-free or the URL must pin a tag (see contributing.md).
-# tarball: https://github.com/<owner>/<repo>/releases/latest/download/dsh-bingo-ren.tgz
+# tarball: https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/latest/download/dsh-bingo-ren.tgz

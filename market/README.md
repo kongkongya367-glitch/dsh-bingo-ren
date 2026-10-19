@@ -10,7 +10,7 @@ directory [`awesome-dsh-plugin/awesome-dsh-plugin`](https://github.com/awesome-d
 The directory no longer accepts README edits. A submission is **one YAML file** at:
 
 ```
-data/plugins/<owner>__<repo>.yml
+data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml
 ```
 
 with this shape (format copied from the repository's `contributing.md`):
@@ -38,7 +38,7 @@ description:
 
 | File | Purpose |
 | --- | --- |
-| `awesome-entry.yml` | Template for `data/plugins/<owner>__<repo>.yml`; replace placeholders. |
+| `awesome-entry.yml` | Template for `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml`; replace placeholders. |
 | `screenshots.json` | Copy to the repository root so the directory and storefronts pick up the screenshots. |
 | `PR.md` | Suggested PR title and body, plus the checklist. |
 

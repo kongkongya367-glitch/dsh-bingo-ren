@@ -158,4 +158,4 @@ Bingo **不发起任何对外网络请求**。它只访问页面同源、走回�
 
 ---
 
-> **发布状态（占位符已显式标注）：** Bingo **尚未发布**。计划以 `dsh-bingo-ren` 发布（`dsh-bingo` 已被占用），但尚未发布到 npm，也**未被**社区插件目录收录。`package.json` 中的 repository/homepage/bugs 仍使用 `your-name` 占位符，发布前必须替换。详见项目仓库中的 `PUBLISH.md`。
+> **发布状态：** Bingo **尚未发布到 npm**，也**未被**社区插件目录收录。GitHub 仓库已配置为 `https://github.com/kongkongya367-glitch/dsh-bingo-ren`；npm 发布与 awesome-dsh-plugin PR 仍需所有者登录后执行。详见 `PUBLISH.md`。
