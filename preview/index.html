@@ -405,7 +405,7 @@
     var theme = params.get('theme') === 'dark' ? 'dark' : 'light';
     var pendingVisible = scene === 'pending' || scene === 'panel-pending';
 
-    window.__DSH_BINGO_VERSION__ = '0.2.0';
+    window.__DSH_BINGO_VERSION__ = '0.4.0';
     window.__DSH_BINGO_POSITION__ = 'bottom-left';
     window.__DSH_BINGO_FORCE_THEME__ = theme;
     window.__DSH_BINGO_CLIENT_CSS__ = new URL('../client/bingo-client.css', location.href).href + '?v=preview';
@@ -423,6 +423,32 @@
     ];
     var demoTrials = scene === 'trials' ? [{ name: packages[0].name, version: packages[0].version, id: 'trial-demo', createdAt: new Date().toISOString(), reviewDue: true, versionChanged: false, removable: true }] : [];
 
+    var demoCheckpoints = [
+      { id: 'cp-1', at: new Date(Date.now() - 8 * 60 * 1000).toISOString(), reason: 'change', count: 6 },
+      { id: 'cp-2', at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), reason: 'before-rollback', count: 5 },
+      { id: 'cp-3', at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(), reason: 'change', count: 5 }
+    ];
+    var demoLeftovers = [
+      { kind: 'ignored', name: 'dsh-example-old', path: 'C:\\Users\\example\\.dsh\\profiles\\desktop\\node_modules\\.ignored\\dsh-example-old', bytes: 184320 },
+      { kind: 'tmp', name: 'dsh-whale-widget', path: 'C:\\Users\\example\\.dsh\\profiles\\desktop\\node_modules\\dsh-whale-widget_tmp_19580_14', bytes: 96432 }
+    ];
+    var demoSafeMode = scene === 'recovery-safe' ? { at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), applied: true, disabled: ['dsh-whale-widget', 'dsh-plugin-market'] } : null;
+    var demoTimeline = {
+      ok: true,
+      stats: { count: 3, avgMs: 4120, maxMs: 5600 },
+      items: [
+        { requestedAt: new Date(Date.now() - 42 * 60 * 1000).toISOString(), bootedAt: new Date(Date.now() - 42 * 60 * 1000 + 3495).toISOString(),
+          trigger: 'button', ok: true, phases: { stopMs: 662, launchMs: 279, totalMs: 3495 }, totalMs: 3495, bootMs: 3495,
+          plugins: [{ kind: 'added', name: 'dsh-whale-widget', from: null, to: '0.4.2', at: new Date().toISOString() }] },
+        { requestedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), bootedAt: new Date(Date.now() - 3 * 60 * 60 * 1000 + 5600).toISOString(),
+          trigger: 'new-plugin', ok: true, phases: { stopMs: 910, launchMs: 640, totalMs: 5600 }, totalMs: 5600, bootMs: 5600,
+          plugins: [{ kind: 'updated', name: 'dsh-plugin-market', from: '1.7.0', to: '1.8.0', at: new Date().toISOString() }] },
+        { requestedAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(), bootedAt: null,
+          trigger: 'button', ok: false, phases: { stopMs: 700, launchMs: null, totalMs: null }, totalMs: null, bootMs: null,
+          plugins: [{ kind: 'removed', name: 'dsh-example-old', from: '0.1.0', to: null, at: new Date().toISOString() }] }
+      ]
+    };
+
     function activityPayload() {
       return { ok: true, history: demoHistory, packages: packages, trials: demoTrials, canRemove: true, warning: null,
         acceptance: packages.map(function (p, i) { return { name: p.name, version: p.version, installedVersion: p.version, state: ['active', 'failed', 'unknown'][i % 3] }; })
@@ -433,7 +459,7 @@
       var web = scene === 'web';
       return {
         ok: true,
-        version: '0.2.0',
+        version: '0.4.0',
         desktop: !web,
         canRestart: !web,
         restarting: scene === 'restarting',
@@ -486,6 +512,26 @@
         }
         return reply({ ok: true });
       }
+      if (url.indexOf('/bingo/recovery') !== -1) {
+        return reply({ ok: true, safeMode: demoSafeMode, busy: { busy: false, reason: null },
+          checkpoints: demoCheckpoints, packages: packages,
+          leftovers: scene === 'recovery-clean' ? demoLeftovers : demoLeftovers });
+      }
+      if (url.indexOf('/bingo/timeline') !== -1) return reply(demoTimeline);
+      if (url.indexOf('/bingo/rollback') !== -1) {
+        return reply({ ok: true, changed: true, restartRequired: true,
+          plan: { remove: ['dsh-bingo-extra'], install: [], enable: ['dsh-plugin-market'], disable: [], same: 3 } }, 202);
+      }
+      if (url.indexOf('/bingo/safe-mode') !== -1) {
+        var safeBody = JSON.parse(init.body);
+        if (safeBody.action === 'exit') { demoSafeMode = null; return reply({ ok: true, cleared: ['dsh-whale-widget'], restartRequired: true }); }
+        demoSafeMode = { at: new Date().toISOString(), applied: true, disabled: ['dsh-whale-widget', 'dsh-plugin-market'] };
+        return reply({ ok: true, targets: demoSafeMode.disabled, failures: [], restartRequired: true }, 202);
+      }
+      if (url.indexOf('/bingo/cleanup') !== -1) {
+        var cleanBody = JSON.parse(init.body);
+        return reply({ ok: true, deleted: cleanBody.paths || [], failed: [], refused: [] });
+      }
       if (url.indexOf('/bingo/restart') !== -1) return reply({ ok: true, scheduled: true }, 202);
       if (url.indexOf('/bingo/dismiss') !== -1) {
         pendingVisible = false;
@@ -501,7 +547,8 @@
       ['pending', '新插件弹层'],
       ['restarting', '重启等待'],
       ['web', 'Web 降级']
-      ,['history', '变更记录'], ['trials', '临时试用'], ['checks', '验收清单']
+      ,['history', '变更记录'], ['trials', '临时试用'], ['checks', '验收清单'],
+      ['recovery', '恢复'], ['recovery-safe', '安全模式中']
     ];
     var bar = document.getElementById('devbar');
     if (params.get('dev') === '1' && bar) {
@@ -523,8 +570,8 @@
     }
 
     window.addEventListener('dsh-bingo:ready', function () {
-      if (['history', 'trials', 'checks'].indexOf(scene) !== -1) {
-        window.__DSH_BINGO__.openManager(scene);
+      if (['history', 'trials', 'checks', 'recovery', 'recovery-safe', 'recovery-clean'].indexOf(scene) !== -1) {
+        window.__DSH_BINGO__.openManager(scene.indexOf('recovery') === 0 ? 'recovery' : scene);
         return;
       }
       if (['panel', 'panel-pending', 'web'].indexOf(scene) === -1) return;

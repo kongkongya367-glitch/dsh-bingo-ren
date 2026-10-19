@@ -13,6 +13,8 @@
 | `?scene=history` | 插件变更记录 |
 | `?scene=trials` | 待决定的试用插件 |
 | `?scene=checks` | 运行状态验收 |
+| `?scene=recovery` | 恢复页（重启记录 · 回滚点 · 残留） |
+| `?scene=recovery-safe` | 安全模式已启用 |
 | `&theme=dark` | 深色主题 |
 | `&dev=1` | 场景切换工具 |
 
@@ -22,7 +24,16 @@
 npm run build
 ```
 
-可读源码位于 `preview/src/`，压缩产物位于 `client/`。客户端 JS/CSS 总大小预算为 52 KB。
+可读源码位于 `preview/src/`，产物位于 `client/`。客户端 JS/CSS 总大小预算为 70 KB（当前 59.6 KB）。
+
+## 本地预览服务
+
+```sh
+node preview/serve.mjs          # http://127.0.0.1:4173/preview/index.html?dev=1
+node preview/check.mjs          # headless 检查 9 个场景是否渲染、有无控制台错误
+```
+
+`check.mjs` 需要 Edge/Chromium，可用 `BINGO_EDGE` 指定路径。它只访问本地模拟数据。
 
 ## 重拍 README 预览
 

@@ -909,7 +909,7 @@
         if (!trial.removable && !trial.versionChanged) row.appendChild(el('p', 'bingo-muted', '当前不能在 Bingo 中移除，请在 Harness 插件页查看。'));
       });
     } else if (S.deskTab === 'recovery') {
-      note('回滚只退回插件清单，插件数据保留；安全模式暂时停用社区插件。任何操作都要重启后才生效。');
+      note('回滚按旧清单增删插件并恢复启用状态，插件数据保留；安全模式会真的停用社区插件。任何操作都要重启后才生效。');
       var rec = S.recovery;
       if (!rec) { content.appendChild(el('p', 'bingo-muted', '正在读取恢复信息…')); return; }
       if (rec.warning) note(rec.warning);
