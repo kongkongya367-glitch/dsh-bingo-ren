@@ -405,7 +405,7 @@
     var theme = params.get('theme') === 'dark' ? 'dark' : 'light';
     var pendingVisible = scene === 'pending' || scene === 'panel-pending';
 
-    window.__DSH_BINGO_VERSION__ = '0.1.1';
+    window.__DSH_BINGO_VERSION__ = '0.1.2';
     window.__DSH_BINGO_POSITION__ = 'bottom-left';
     window.__DSH_BINGO_FORCE_THEME__ = theme;
     window.__DSH_BINGO_CLIENT_CSS__ = new URL('../client/bingo-client.css', location.href).href + '?v=preview';
@@ -421,13 +421,13 @@
       var web = scene === 'web';
       return {
         ok: true,
-        version: '0.1.1',
+        version: '0.1.2',
         desktop: !web,
         canRestart: !web,
         restarting: scene === 'restarting',
         pollMs: 4000,
         position: 'bottom-left',
-        profile: { name: 'desktop', dir: 'C:\\Users\\31461\\.dsh\\profiles\\desktop' },
+        profile: { name: 'desktop', dir: 'C:\\Users\\example\\.dsh\\profiles\\desktop' },
         pending: pendingVisible ? {
           signature: 'sha256:9f3c1d7a5b27',
           packages: packages,
@@ -437,7 +437,7 @@
           at: new Date(Date.now() - 47 * 60 * 1000).toISOString(),
           trigger: 'button',
           ok: true,
-          log: 'C:\\Users\\31461\\.dsh\\bingo\\restart.log'
+          log: 'C:\\Users\\example\\.dsh\\bingo\\restart.log'
         }
       };
     }

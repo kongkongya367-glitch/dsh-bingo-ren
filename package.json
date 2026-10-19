@@ -1,6 +1,6 @@
 {
   "name": "dsh-bingo-ren",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Draggable Bingo button for DeepSeek Harness: snaps to the nearest edge, restarts the whole desktop app in one click, and prompts when a new plugin is installed. Zero runtime dependencies.",
   "keywords": [
     "dsh-plugin",
@@ -46,5 +46,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "build": "node preview/build.mjs",
+    "test": "node --test test/host.test.mjs test/restart-helper.test.mjs test/client-behavior.test.mjs test/install-local.test.mjs test/client-contract.mjs",
+    "prepack": "npm run build"
   }
 }

@@ -14,7 +14,8 @@ $ErrorActionPreference = 'Stop'
 $repoDir = Split-Path -Parent $PSScriptRoot
 Push-Location $repoDir
 try {
-  $raw = & npm pack --dry-run --json
+  # Inspect the built files without prepack logging into the JSON stream.
+  $raw = & npm pack --dry-run --json --ignore-scripts
   if ($LASTEXITCODE -ne 0) {
     throw "npm pack --dry-run failed with exit code $LASTEXITCODE."
   }

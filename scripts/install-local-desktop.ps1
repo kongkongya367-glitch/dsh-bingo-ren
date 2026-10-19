@@ -10,7 +10,7 @@
   This edits the real profile, so quit DeepSeek Harness first. The script does not
   install dependencies, run npm publish, kill processes or restart the app.
 
-  Use -Uninstall to restore the backed-up package.json and remove the copied package.
+  Use -Uninstall to remove only Bingo's entries and the installed package.
   Use -WhatIf to preview every change. The default profile is "desktop"; prefer a
   disposable self-test profile unless you really mean the desktop app.
 
@@ -23,7 +23,7 @@
   Profile to modify. Defaults to desktop. Only [A-Za-z0-9._-] is accepted.
 
 .PARAMETER Uninstall
-  Restore the package.json backup and remove the copied package.
+  Remove Bingo's dependency and bundle entry, preserving other profile changes.
 
 .PARAMETER Force
   Skip the running-DeepSeek-Harness check. The script still never kills or restarts it.
@@ -53,7 +53,7 @@ if (-not (Test-Path -LiteralPath $repoManifest)) {
   throw "Cannot find package.json in '$repoDir'. Run this script from a checkout of dsh-bingo-ren."
 }
 
-if ($ProfileName -notmatch '^[A-Za-z0-9._-]+$') {
+if ($ProfileName -notmatch '^[A-Za-z0-9._-]+$' -or $ProfileName -in @('.', '..')) {
   throw "Invalid -ProfileName '$ProfileName'. Use letters, digits, dot, underscore or dash."
 }
 
@@ -75,6 +75,25 @@ $manifestPath = Join-Path $profileDir 'package.json'
 $backupPath = Join-Path $profileDir 'package.json.bingo-backup'
 $nodeModulesDir = Join-Path $profileDir 'node_modules'
 $targetDir = Join-Path $nodeModulesDir 'dsh-bingo-ren'
+
+function Remove-BingoPackage {
+  # Validate the absolute destination before any recursive deletion. A local
+  # development install may be a junction to the checkout: unlink it only.
+  $resolvedTarget = [System.IO.Path]::GetFullPath($targetDir)
+  $resolvedModules = [System.IO.Path]::GetFullPath($nodeModulesDir).TrimEnd([char[]]@('\', '/'))
+  if (-not $resolvedTarget.StartsWith($resolvedModules + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase) -or
+      [System.IO.Path]::GetFileName($resolvedTarget) -ne 'dsh-bingo-ren') {
+    throw 'Refusing to remove a package outside the selected profile node_modules.'
+  }
+  $installed = Get-Item -LiteralPath $resolvedTarget -Force -ErrorAction SilentlyContinue
+  if ($null -eq $installed) { return }
+  if (($installed.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+    [System.IO.Directory]::Delete($resolvedTarget)
+  }
+  else {
+    Remove-Item -LiteralPath $resolvedTarget -Recurse -Force
+  }
+}
 
 function Assert-HarnessClosed {
   param([switch]$SkipCheck)
@@ -134,16 +153,23 @@ Write-Host "  repo     : $repoDir"
 Assert-HarnessClosed -SkipCheck:$Force
 
 if ($Uninstall) {
-  if (-not (Test-Path -LiteralPath $backupPath)) {
-    throw "No backup found at '$backupPath'. Refusing to guess how to restore the profile. Restore the dependency and bundle entry manually, or reinstall then uninstall."
+  if (-not (Test-Path -LiteralPath $manifestPath)) {
+    throw "No profile manifest at '$manifestPath'. Refusing to modify an unknown profile."
   }
-  $manifestExisted = Test-Path -LiteralPath $manifestPath
-  if ($PSCmdlet.ShouldProcess($manifestPath, 'Restore profile package.json from backup')) {
-    Copy-Item -LiteralPath $backupPath -Destination $manifestPath -Force
+  $manifest = Read-ProfileManifest
+  if ($null -ne $manifest.dependencies) {
+    $manifest.dependencies.PSObject.Properties.Remove('dsh-bingo-ren')
+  }
+  if ($null -ne $manifest.dsh -and $null -ne $manifest.dsh.profile -and
+      $null -ne $manifest.dsh.profile.bundles) {
+    $manifest.dsh.profile.bundles = @($manifest.dsh.profile.bundles | Where-Object { $_ -ne 'dsh-bingo-ren' })
+  }
+  if ($PSCmdlet.ShouldProcess($manifestPath, 'Remove only the Bingo dependency and bundle entry')) {
+    Write-ProfileManifest -Manifest $manifest
   }
   if (Test-Path -LiteralPath $targetDir) {
     if ($PSCmdlet.ShouldProcess($targetDir, 'Remove copied dsh-bingo-ren package')) {
-      Remove-Item -LiteralPath $targetDir -Recurse -Force
+      Remove-BingoPackage
     }
   }
   if ($WhatIfPreference) {
@@ -152,11 +178,8 @@ if ($Uninstall) {
     return
   }
   Write-Host ""
-  Write-Host "Restored '$manifestPath' from '$backupPath'."
-  Write-Host "The backup is kept so the restore can be repeated; delete it manually when you no longer need it."
-  if (-not $manifestExisted -and -not $WhatIfPreference) {
-    Write-Host "The manifest did not exist before; it was recreated from the backup."
-  }
+  Write-Host "Removed Bingo from '$manifestPath'; other plugin entries are preserved."
+  Write-Host 'Any existing backup is retained for manual recovery.'
   return
 }
 
@@ -192,7 +215,7 @@ else {
 # Copy the package into node_modules, replacing a previous local copy.
 if ($PSCmdlet.ShouldProcess($targetDir, 'Copy dsh-bingo-ren into profile node_modules')) {
   if (Test-Path -LiteralPath $targetDir) {
-    Remove-Item -LiteralPath $targetDir -Recurse -Force
+    Remove-BingoPackage
   }
   New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
   foreach ($item in $presentItems) {

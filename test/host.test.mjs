@@ -902,6 +902,29 @@ test('recomposition: same host boot preserves pending instead of re-baselining',
   assert.deepEqual(second.status().pending.packages, [{ name: 'dsh-hot-mounted', version: '1.2.3' }]);
 });
 
+test('recomposition detects an install before the previous detector has run', async (t) => {
+  const ctx = setupRuntime({
+    desktop: false,
+    packageJson: { dependencies: { 'dsh-old': '1.0.0' } },
+    runtimeToken: 'early-recomposition',
+  });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, { dependencies: { 'dsh-old': '1.0.0', 'dsh-new': '2.0.0' } });
+  // A hot mount can dispose Bingo before its fs.watch debounce/poll fires.
+  ctx.runtime.dispose();
+  const second = createRuntime(createHostContext({ webServer: createFakeWebServer() }), {}, {
+    env: ctx.env,
+    profileDir: ctx.profileDir,
+    stateDir: ctx.stateDir,
+    runtimeToken: 'early-recomposition',
+    settleMs: 0,
+    isDesktop: false,
+  });
+  t.after(() => second.dispose());
+  await second.detectNow();
+  assert.deepEqual(second.status().pending.packages, [{ name: 'dsh-new', version: '2.0.0' }]);
+});
+
 test('new app boot refreshes the baseline and clears pending', async (t) => {
   const initial = { dependencies: { 'dsh-a': '1.0.0' }, dsh: { profile: { bundles: ['dsh-a'] } } };
   const ctx = setupRuntime({ desktop: false, packageJson: initial, runtimeToken: 'boot-1' });

@@ -1,165 +1,89 @@
 # Bingo — one-click restart for DeepSeek Harness
 
-Package: **dsh-bingo-ren** (display name **dsh-Bingo-ren**; npm requires lowercase).
+A draggable Bingo button that restarts the desktop app and prompts when new plugins are installed.
 
-A quiet **Bingo** button in DeepSeek Harness (dsh). It starts in the bottom-left corner, can be dragged anywhere, and snaps to the nearest edge when you let go. Open it, and one click on **Bingo 一下** restarts the whole desktop app. When a plugin is installed while the app is running, Bingo notices and offers the restart for you.
+[中文说明](README.zh.md) · [GitHub Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)
 
-- **Whole-app restart** — kills the Electron shell and its host process, waits for the old instance to release the port, then starts the app again.
-- **New-plugin detection** — watches the profile manifest while the app runs; a new dependency raises a centered “检测到新插件” (new plugin detected) dialog. “稍后” (later) acknowledges that exact signature, so the next plugin asks again.
-- **Drag, snap, remember** — drag the capsule with the mouse/finger; releasing near an edge snaps it there, the panel re-anchors automatically, and the position survives restarts (localStorage).
-- **Keyboard shortcut** — `Ctrl+Alt+B` (`Cmd+Alt+B` on macOS) opens the panel.
-- **Zero runtime dependencies** — plain Node ESM plus one browser script; no React, no bundler, no npm install tree.
-- **Native look** — neutral paper/ink palette, 1px borders, soft shadows, light theme by default with automatic dark-mode support. Inline SVG icon, no emoji.
-- **Web/headless safe** — when a page is served outside the desktop shell, the button still appears, but restart is disabled and the panel explains why (and offers a page refresh).
+## Features
 
-**[中文说明 →](README.zh.md)**
+- Open the panel and click **Bingo 一下** to restart the entire desktop app.
+- Detect new plugins while the app runs; **稍后** (Later) acknowledges the current set.
+- Drag the button, snap it near an edge, and remember its position.
+- Open with `Ctrl+Alt+B` (`Cmd+Alt+B` on macOS).
+- Light/dark themes, zero runtime dependencies, no telemetry.
 
 ## Preview
 
-| Button | Panel | New plugin detected |
+| Button | Panel | New plugin |
 | --- | --- | --- |
-| <img src="assets/screenshot-button.png" width="280" alt="Bingo button in the bottom-left corner"> | <img src="assets/screenshot-panel.png" width="280" alt="Bingo panel anchored above the button"> | <img src="assets/screenshot-new-plugin.png" width="280" alt="New plugin dialog"> |
+| <img src="assets/screenshot-button.png" width="280" alt="Bingo button"> | <img src="assets/screenshot-panel.png" width="280" alt="Bingo panel"> | <img src="assets/screenshot-new-plugin.png" width="280" alt="New plugin dialog"> |
 
-These are **offline design previews** rendered from the same geometry and mock data as `preview/index.html` — not browser screenshots of a live profile. The dark panel preview is <a href="assets/screenshot-panel-dark.png">here</a>; `preview/README.md` has a one-line Edge command to retake real screenshots on any machine without the sandbox's named-pipe restriction.
-
-### Drag and edge snapping
-
-The capsule can be dragged anywhere; it snaps to the nearest edge on release, the panel re-anchors to stay on-screen, and the position survives restarts.
-
-<img src="assets/screenshot-dragged.png" width="520" alt="Bingo dragged and snapped to the top-right corner">
-
-This one is a real Chromium (headless Edge) capture of preview/index.html made while verifying drag/snap; the page content is still mock, not a live profile.
+Images use mock data. The button, panel and dialog images are design renders; the [drag example](assets/screenshot-dragged.png) is a browser capture of the mock preview page.
 
 ## Install
 
-### Desktop app
+In **Settings → Plugins → Add plugin**, enter:
 
-> The npm package is **not published yet**. Until it is, add the GitHub repository `https://github.com/kongkongya367-glitch/dsh-bingo-ren` in **Settings → Plugins → Add plugin** (the package ships prebuilt files), use the `dsh-bingo-ren-0.1.1.tgz` GitHub Release asset, or run the local installer. Once npm is published, enter `dsh-bingo-ren` directly.
+```text
+dsh-bingo-ren
+```
 
-1. Open **Settings → Plugins**.
-2. Choose **Add plugin**.
-3. Enter `dsh-bingo-ren` (after npm publish) or the GitHub repository URL above and confirm.
-4. **Restart DeepSeek Harness once by hand** (quit and reopen it).
+You can also install using the [GitHub repository URL](https://github.com/kongkongya367-glitch/dsh-bingo-ren). Quit and reopen DeepSeek Harness once after installation so Bingo can load.
 
-This is the only supported way to install into the running desktop app: the app owns its `desktop` profile and rejects package operations against it from a separate CLI process. Do not use `dsh plugin --profile desktop …`; install through the app instead.
-
-Step 4 is required only for the first install: the button is served by the plugin itself, so it cannot restart an app that has not loaded it yet. After that first restart the Bingo button handles every restart.
-
-### dsh CLI (web and self-test profiles)
-
-Once the package is published, the CLI path is for profiles that are **not** the running desktop app, such as `dsh web` or a disposable self-test profile:
+Manage the running desktop profile through the app. The CLI is for separate web or test profiles:
 
 ```sh
 dsh plugin --profile bingo-selftest add dsh-bingo-ren
 ```
 
-The command needs the `dsh` CLI on your `PATH`. To install a local checkout during development:
+For a local source install, see the [development notes](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md).
 
-```sh
-dsh plugin --profile bingo-selftest add link:/absolute/path/to/this/checkout
-```
+## Use and limitations
 
-`scripts/install.ps1` wraps that development install into a **separate self-test profile** and refuses to touch `desktop`. If Windows blocks the unsigned script, run it with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1`.
+Click **Bingo**, then **Bingo 一下**. The panel is the confirmation step.
 
-### Local install before publishing (advanced)
+**Restart interrupts running tasks.** Save your work first. If a restart fails, the panel recovers and allows another attempt. Diagnostics are in `~/.dsh/bingo/restart.log`.
 
-If the package is not on npm yet and you want to evaluate Bingo in the real desktop profile, use the local installer **after quitting DeepSeek Harness** (source checkout only; `scripts/` is not shipped in the npm tarball):
+The new-plugin dialog offers **立即 Bingo** (Restart now) and **稍后** (Later). Escape and clicking the backdrop also dismiss it. Plugins installed while the app is closed become the next startup baseline. A prompt indicates a new manifest entry; whether a restart is necessary depends on the plugin and host loading behavior.
 
-```powershell
-# Preview only — prints every change and writes nothing
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-desktop.ps1 -WhatIf
-
-# Copy this checkout into the desktop profile and register it
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-desktop.ps1
-
-# Restore the backed-up profile manifest and remove the copied package
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-desktop.ps1 -Uninstall
-```
-
-Options: `-DshHome <dir>` (defaults to `$env:DSH_HOME` or `~/.dsh`), `-ProfileName desktop` (advanced; other profile names are allowed), and `-Force` to override the running-process check.
-
-The script:
-
-- refuses to run while a DeepSeek Harness process is detected, unless `-Force` is given;
-- backs up `<profile>/package.json` to `package.json.bingo-backup`, adds the dependency and the bundle entry, and copies this checkout to `<profile>/node_modules/dsh-bingo-ren`;
-- never runs `npm publish`, never kills or restarts the app, and touches only the named profile. `-Uninstall` restores the backup, removes the copied package, and keeps the backup for a repeat restore.
-
-This is an advanced local-evaluation path, not the release install. Once published, Settings → Plugins remains the supported path.
-
-## Use
-
-1. Click **Bingo** (or press `Ctrl+Alt+B`) to open the panel. It shows whether the app can restart, any pending plugin, and the last restart.
-2. Click **Bingo 一下** (“Bingo it”) to restart immediately. The panel is the confirmation step — the app does not ask twice.
-3. **稍后** (“Later”) dismisses the current new-plugin prompt. It is remembered by signature, so it will not reappear for the same set of plugins; a newer install asks again.
-
-The in-app panel ships with Chinese labels in 0.1.0; this guide quotes them and adds translations.
-
-When a new plugin is detected, a centered dialog lists the new package names and versions:
-
-- **立即 Bingo** (“Bingo now”) → same whole-app restart.
-- **稍后** (“Later”) / `Esc` / clicking the backdrop → acknowledge this signature and keep working.
-
-If you installed the plugin while the app was running, the first notification may refer to that install; acknowledge it and restart once manually.
+Full restart requires the official Electron desktop app. Web mode disables restart and offers a page refresh. The interface currently uses Chinese labels.
 
 ## Configuration
 
-All options are optional and live under the `dsh-bingo-ren` row in the profile's `cordis.patch.yml`:
+Configure the plugin row in the profile's `cordis.patch.yml`:
 
 ```yaml
 - id: dsh-bingo-ren
   config:
-    enabled: true          # false = do not inject the button or routes
-    pollMs: 4000           # profile poll interval, 1500–60000
-    confirm: true          # accepted by the host; 0.1.1 always shows the panel first
-    allowRestart: true     # false = hard disable, e.g. an operations escape hatch
-    position: bottom-left  # or bottom-right
+    enabled: true
+    pollMs: 4000           # 1500–60000 milliseconds
+    allowRestart: true
+    position: bottom-left # or bottom-right
     debug: false
 ```
 
-In 0.1.1 the panel is always the confirmation step; `confirm` is accepted by the host but does not skip the panel yet.
-
-## Safety
-
-A restart is a real restart: the Electron shell and its host process are terminated and the app starts again. **In-flight tasks are interrupted**; the panel says so before you click. The restart helper:
-
-- terminates only the two PIDs it was given (the shell that loaded it and its host process) — never by process name and never a process tree;
-- waits for the old instance to exit and its port to be released, with a timeout and a logged fallback;
-- starts a detached helper that survives the shutdown and launches the app again;
-- appends diagnostics to `~/.dsh/bingo/restart.log` and keeps detection state in `~/.dsh/bingo/state.json`.
-
-In `dsh web` or headless mode nothing is killed: restart is disabled and the panel offers **Refresh page** instead.
-
-## Privacy
-
-Bingo makes **no outbound network requests**. It only talks to its own host routes under `/bingo/*` on the loopback web server that already serves the page, and it reads the local profile `package.json` to detect newly installed plugins. It sends no telemetry and loads no third-party assets.
-
-## Compatibility
-
-- DeepSeek Harness **0.2.0-rc.1 or newer** (`engines.dsh`), Node.js **20 or newer**.
-- Full whole-app restart: the official Electron desktop app.
-- Degraded mode: `dsh web` / headless hosts that serve a page — the button is visible, restart is disabled.
-- Built with the public Cordis webServer and index-injection APIs; it does not modify DSH core or any installed package.
+`confirm` is reserved; the current client always opens the panel first.
 
 ## Uninstall
 
-1. Open **Settings → Plugins**, find **Bingo**, and remove it. For the desktop profile this is the only supported path.
-2. For a non-desktop profile, the CLI works: `dsh plugin --profile <profile> remove dsh-bingo-ren`.
-3. If you installed with the advanced local script, quit the app and run `scripts/install-local-desktop.ps1 -Uninstall`.
-4. Restart the app once. The button and its routes disappear.
+Remove Bingo in **Settings → Plugins**, then restart the app once. For a source install made with the local script, quit the app first and run:
 
-Optional cleanup: delete `~/.dsh/bingo/` (detection baseline, acknowledgements, restart log).
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-desktop.ps1 -Uninstall
+```
+
+The local uninstaller removes only Bingo's dependency, bundle entry and package directory, preserving other plugin configuration. Optionally remove `~/.dsh/bingo/` to clear detection state and logs.
+
+## Privacy and compatibility
+
+Bingo reads the local profile manifest and uses same-origin `/bingo/*` routes. It sends no telemetry, loads no third-party assets, and stores state and logs locally.
+
+Requires Node.js 20+ and DeepSeek Harness 0.2.0-rc.1+. Uses public Cordis APIs without modifying DSH core.
 
 ## Troubleshooting
 
-- **No button after install** — restart the app once; the first load cannot inject itself retroactively. Confirm the plugin is enabled in Settings → Plugins.
-- **Button is visible but restart is disabled** — you are in web/headless mode; use the panel's refresh action.
-- **Restart did nothing** — read `~/.dsh/bingo/restart.log`; the helper logs each stage (start, kill, wait, relaunch).
-- **A new plugin was not announced** — the baseline is refreshed on every app start, so plugins installed while the app was closed are considered active and are not announced.
+- No button: restart once after installation and confirm the plugin is enabled.
+- Restart disabled: use the desktop app and check `allowRestart`.
+- Restart failed: inspect `~/.dsh/bingo/restart.log`, resolve executable or permission problems, and retry.
 
-## License
-
-[MIT](LICENSE)
-
----
-
-> **Release status:** The GitHub repository and `v0.1.1` Release are public: `https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/tag/v0.1.1`. Bingo is **not published to npm yet** and is **not listed** in the community directory (awesome-dsh-plugin CI requires the repository to be at least one day old; it was created at 2026-10-19 05:50 UTC). npm publishing and the market PR still require the owner to sign in. See `PUBLISH.md`.
+[MIT License](LICENSE)

@@ -1,8 +1,3 @@
-# Template for an awesome-dsh-plugin submission.
-# Target path in the awesome-dsh-plugin/awesome-dsh-plugin repository:
-#   data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml
-# Repository is set to kongkongya367-glitch/dsh-bingo-ren. Verify it before the PR.
-# Do not copy this comment block into the submitted file.
 url: https://github.com/kongkongya367-glitch/dsh-bingo-ren
 name: kongkongya367-glitch/dsh-bingo-ren
 category: ui
@@ -10,5 +5,5 @@ description:
   en: 'Adds a draggable Bingo button to DeepSeek Harness. It snaps to the nearest edge, remembers its position, restarts the whole desktop app in one click, and offers the same restart when a new plugin is detected while the app is running.'
   zh: '在 DeepSeek Harness 里加一枚可拖动的 Bingo 按钮：松手吸附最近边缘并记住位置；在面板里一键重启整个桌面端；运行期间检测到新装插件时，弹出居中对话框询问是否立即重启。'
 
-# Prebuilt tarball from the published v0.1.1 GitHub Release (tag-pinned).
-tarball: https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/download/v0.1.1/dsh-bingo-ren-0.1.1.tgz
+# Prebuilt tarball from the v0.1.2 GitHub Release (tag-pinned).
+tarball: https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/download/v0.1.2/dsh-bingo-ren-0.1.2.tgz

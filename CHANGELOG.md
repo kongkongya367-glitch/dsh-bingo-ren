@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.1.2] - 2026-10-19
+
+### Fixed
+
+- Detect new plugins when a hot recomposition happens before the previous detector runs.
+- Recover the panel and allow retry after a restart fails; ignore status requests started before the restart.
+- Show restart errors from the new-plugin dialog in the panel and disable unsupported restart actions.
+- Local uninstall removes only Bingo entries, preserving later profile changes and junction targets.
+
+### Changed
+
+- Remove personal machine paths and internal task notes from public documentation and preview data.
+- Shorten installation, development and release instructions; add build and test commands.
+
 ## [0.1.1] - 2026-10-19
 
 ### Fixed
@@ -30,7 +44,7 @@ Nothing yet.
 
 ## [0.1.0] - 2026-10-19
 
-Initial release, prepared but **not yet published**.
+Initial implementation.
 
 ### Added
 
@@ -53,4 +67,4 @@ Initial release, prepared but **not yet published**.
 
 - npm package name: `dsh-bingo-ren` (`dsh-bingo` was already taken).
 - Not yet published to npm; not yet listed in the community plugin directory.
-- Repository URLs in `package.json` are explicit placeholders.
+- Repository metadata points to the public GitHub repository.

@@ -1,45 +1,9 @@
-# Market submission material
+# 社区插件目录材料
 
-This directory holds copy-ready material for listing Bingo in the community plugin
-directory [`awesome-dsh-plugin/awesome-dsh-plugin`](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin).
+本目录保存 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 的提交材料，尚未提交 PR。
 
-**Nothing here has been submitted yet.** These are templates with explicit placeholders.
+- `awesome-entry.yml`：目标文件为 `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml`。
+- `PR.md`：建议的 PR 标题和正文。
+- `screenshots.json`：与仓库根目录的截图声明保持一致。
 
-## What is real (checked 2026-10-19)
-
-The directory no longer accepts README edits. A submission is **one YAML file** at:
-
-```
-data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml
-```
-
-with this shape (format copied from the repository's `contributing.md`):
-
-```yaml
-url: https://github.com/owner/repo
-name: owner/repo
-category: ui
-description:
-  en: One-line description ending with a period.
-  zh: 一句话描述，以句号结尾。
-```
-
-- `description.en` is the only required description; `zh` is optional.
-- Category values include `ui`, `tools`, `usage`, `dev`, `workflow`, `fun`, and others.
-- Screenshots are declared in **this plugin's own repository**, in a `screenshots.json`
-  next to `package.json` (1–8 relative paths). Copy `screenshots.json` from this
-  directory to the repository root before opening the PR.
-- An npm package is optional for listing. If published, its `repository` field must
-  point back at the listed repository.
-- A PR may add at most 3 entries. This submission adds one.
-- After merge, the two generated READMEs are rebuilt automatically; do not edit them.
-
-## Files
-
-| File | Purpose |
-| --- | --- |
-| `awesome-entry.yml` | Template for `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml`; replace placeholders. |
-| `screenshots.json` | Copy to the repository root so the directory and storefronts pick up the screenshots. |
-| `PR.md` | Suggested PR title and body, plus the checklist. |
-
-See `../PUBLISH.md` for the full release order.
+提交前核对目标仓库当前的贡献规则、仓库年龄和 `dsh-plugin` topic。`tarball` 必须指向实际存在且验证过的 Release 附件。合并前不宣称已被社区目录收录。

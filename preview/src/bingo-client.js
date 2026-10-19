@@ -6,7 +6,7 @@
 
   var VERSION = typeof window.__DSH_BINGO_VERSION__ === 'string' && window.__DSH_BINGO_VERSION__
     ? window.__DSH_BINGO_VERSION__
-    : '0.1.1';
+    : '0.1.2';
   var API = '/bingo';
   var CSS_URL = typeof window.__DSH_BINGO_CLIENT_CSS__ === 'string' && window.__DSH_BINGO_CLIENT_CSS__
     ? window.__DSH_BINGO_CLIENT_CSS__
@@ -92,6 +92,7 @@
     dialog: false,
     dialogSig: '',
     restarting: false,
+    restartCycle: 0,
     busy: false,
     emitted: false,
     inFlight: false,
@@ -411,6 +412,7 @@
     if (S.inFlight) return;
     if (!force && document.hidden) return;
     S.inFlight = true;
+    var restartCycle = S.restartCycle;
     request(API + '/status').then(function (data) {
       if (!data || data.ok === false) throw new Error('Bad status');
       S.failures = 0;
@@ -421,6 +423,7 @@
       render();
       reveal();
       if (data.restarting) enterRestarting(true);
+      else if (S.restarting && restartCycle === S.restartCycle) leaveRestarting();
       handlePending();
       if (!S.emitted) {
         S.emitted = true;
@@ -578,7 +581,7 @@
 
     if (S.dialog && pending) {
       fillPackages(els.dialogList, els.dialogMore, pending.packages, DIALOG_PENDING_LIMIT);
-      els.dialogPrimary.disabled = restarting || S.busy;
+      els.dialogPrimary.disabled = !canRestart;
     }
     if (S.panel) positionPanel();
   }
@@ -708,6 +711,7 @@
     else if (code === 'spawn-failed') message = '重启进程启动失败，请查看 bingo/restart.log。';
     else if (error && error.status === 403) message = '请求被宿主拒绝，请刷新页面后重试。';
     else message = '重启请求失败，请稍后再试。';
+    if (S.dialog) { closeDialog(false); openPanel(); }
     showError(message);
     live(message);
   }
@@ -738,6 +742,7 @@
   function enterRestarting() {
     if (S.restarting) return;
     S.restarting = true;
+    S.restartCycle += 1;
     S.busy = false;
     closePanel(false);
     closeDialog(false);
@@ -751,6 +756,19 @@
       els.manualHint.hidden = false;
     }, MANUAL_HINT_AFTER);
     schedule(1200);
+  }
+
+  function leaveRestarting() {
+    S.restarting = false;
+    if (S.manualTimer) window.clearTimeout(S.manualTimer);
+    S.manualTimer = 0;
+    els.restartLayer.hidden = true;
+    render();
+    openPanel();
+    if (S.status && S.status.lastRestart && S.status.lastRestart.ok === false) {
+      showError('重启未完成，请查看日志后重试。');
+      live('重启失败，可以重试');
+    }
   }
 
   function trapTab(event) {
