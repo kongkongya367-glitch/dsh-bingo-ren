@@ -387,9 +387,9 @@ test('computeSignature is stable, sorted, and covers dependencies + bundles', ()
 test('listPackages and snapshotPackages include bundle-only entries', () => {
   const manifest = { dependencies: { 'dsh-z': '1.0.0', 'dsh-a': '2.0.0' }, dsh: { profile: { bundles: ['dsh-a', 'dsh-bundle'] } } };
   assert.deepEqual(listPackages(manifest), [
-    { name: 'dsh-a', version: '2.0.0' },
-    { name: 'dsh-bundle', version: null },
-    { name: 'dsh-z', version: '1.0.0' },
+    { name: 'dsh-a', version: '2.0.0', enabled: true },
+    { name: 'dsh-bundle', version: null, enabled: true },
+    { name: 'dsh-z', version: '1.0.0', enabled: false },
   ]);
   const snapshot = snapshotPackages(manifest);
   assert.equal(snapshot.signature, computeSignature(manifest));
@@ -1034,6 +1034,302 @@ test('new app boot refreshes the baseline and clears pending', async (t) => {
   assert.equal(nextBoot.status().profile.dir, ctx.profileDir);
 });
 
+
+/* ------------------------------------------------------------------ */
+/* Runtime: recovery (rollback, safe mode, cleanup)                    */
+/* ------------------------------------------------------------------ */
+
+
+test('GET /bingo/timeline reports restart phases and waiting plugins', async (t) => {
+  // Pin the clock just after the fake restart so the recorded change falls in its window.
+  const ctx = setupRuntime({
+    packageJson: { dependencies: { base: '1' } },
+    now: () => Date.parse('2026-10-19T08:00:02.000Z'),
+  });
+  cleanup(ctx, t);
+  const logFile = path.join(ctx.runtime.stateDir, 'restart.log');
+  fs.mkdirSync(ctx.runtime.stateDir, { recursive: true });
+  // The plugin change is recorded at 08:00:02; the restart it caused starts at 08:00:05.
+  fs.writeFileSync(logFile, [
+    '[2026-10-19T08:00:05.000Z] start helper pid 1 shell 2 host 3 trigger button',
+    '[2026-10-19T08:00:05.600Z] kill signalled pid 2',
+    '[2026-10-19T08:00:06.000Z] launch replacement pid 55',
+    '[2026-10-19T08:00:08.000Z] done ok replacement pid 55 verified=false',
+  ].join(NL), 'utf8');
+  writeProfile(ctx.profileDir, { dependencies: { base: '1', late: '2' } });
+  await ctx.runtime.detectNow();
+  const response = await callRoute(ctx.runtime, '/bingo/timeline');
+  assert.equal(response.status, 200);
+  const body = response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.items.length, 1);
+  const item = body.items[0];
+  assert.equal(item.trigger, 'button');
+  assert.equal(item.totalMs, 3000);
+  assert.equal(item.phases.stopMs, 600);
+  assert.equal(item.phases.launchMs, 400);
+  assert.equal(item.ok, true);
+  assert.equal(item.plugins.some(p => p.name === 'late'), true, 'the new plugin should be linked to the restart');
+  assert.equal(body.stats.count, 1);
+});
+
+test('timeline reports an empty history without a helper log', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { base: '1' } } });
+  cleanup(ctx, t);
+  const response = await callRoute(ctx.runtime, '/bingo/timeline');
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.json().items, []);
+  assert.deepEqual(response.json().stats, { count: 0, avgMs: null, maxMs: null });
+});
+
+test('timeline only attaches plugins recorded near the restart', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { base: '1' } } });
+  cleanup(ctx, t);
+  const logFile = path.join(ctx.runtime.stateDir, 'restart.log');
+  fs.mkdirSync(ctx.runtime.stateDir, { recursive: true });
+  fs.writeFileSync(logFile, [
+    '[2026-10-19T08:00:00.000Z] start helper pid 1 shell 2 host 3 trigger button',
+    '[2026-10-19T08:00:03.000Z] done ok replacement pid 55 verified=false',
+  ].join(NL), 'utf8');
+  writeProfile(ctx.profileDir, { dependencies: { base: '1', late: '2' } });
+  await ctx.runtime.detectNow();
+  const body = (await callRoute(ctx.runtime, '/bingo/timeline')).json();
+  // The change happened after the restart window, so it must not be attributed.
+  assert.equal(body.items[0].plugins.some(p => p.name === 'late'), false);
+});
+
+test('timeline route enforces the trust fence', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { example: '1' } } });
+  cleanup(ctx, t);
+  const response = await callRoute(ctx.runtime, '/bingo/timeline', { headers: { host: 'evil.example' } });
+  assert.equal(response.status, 403);
+});
+
+test('GET /bingo/recovery reports checkpoints, safe mode and leftovers', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { example: '1' } } });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, { dependencies: { example: '1', extra: '2' } });
+  await ctx.runtime.detectNow();
+  const response = await callRoute(ctx.runtime, '/bingo/recovery');
+  assert.equal(response.status, 200);
+  const body = response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.safeMode, null);
+  assert.equal(Array.isArray(body.checkpoints), true);
+  assert.ok(body.checkpoints.length >= 1, 'a change must leave a rollback checkpoint');
+  assert.equal(typeof body.checkpoints[0].count, 'number');
+  assert.equal(Array.isArray(body.leftovers), true);
+  assert.equal(body.busy.busy, false);
+});
+
+test('rollback requires confirmation and a known checkpoint', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { example: '1' } } });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, { dependencies: { example: '1', extra: '2' } });
+  await ctx.runtime.detectNow();
+  const post = body => callRoute(ctx.runtime, '/bingo/rollback', { method: 'POST', body: JSON.stringify(body) });
+  assert.equal((await post({ checkpoint: 'x' })).json().code, 'confirmation-required');
+  assert.equal((await post({ confirmed: true })).json().code, 'invalid-checkpoint');
+  assert.equal((await post({ confirmed: true, checkpoint: 'missing' })).json().code, 'checkpoint-missing');
+});
+
+test('rollback restores the pre-change inventory through the native manager', async (t) => {
+  const removed = [];
+  const installed = [];
+  const manager = {
+    listBundles: async () => [],
+    listPlugins: async () => [],
+    removeBundle: async name => { removed.push(name); return { application: 'applied' }; },
+    installBundle: async (spec, options) => { installed.push({ spec, options }); return { error: null }; },
+    setBundleEnabled: async () => ({ application: 'applied' }),
+  };
+  const ctx = setupRuntime({ manager, packageJson: { dependencies: { keep: '1' } } });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, { dependencies: { keep: '1', newcomer: '2' } });
+  await ctx.runtime.detectNow();
+  const recovery = (await callRoute(ctx.runtime, '/bingo/recovery')).json();
+  const checkpoint = recovery.checkpoints[0];
+  assert.ok(checkpoint, 'checkpoint expected after a detected change');
+  const response = await callRoute(ctx.runtime, '/bingo/rollback', {
+    method: 'POST',
+    body: JSON.stringify({ confirmed: true, checkpoint: checkpoint.id }),
+  });
+  assert.equal(response.status, 202, response.body);
+  assert.deepEqual(removed, ['newcomer']);
+  assert.deepEqual(installed, []);
+  assert.equal(response.json().restartRequired, true);
+});
+
+test('rollback reinstalls packages the checkpoint had', async (t) => {
+  const installed = [];
+  const manager = {
+    listBundles: async () => [],
+    listPlugins: async () => [],
+    removeBundle: async () => ({ application: 'applied' }),
+    installBundle: async (spec, options) => { installed.push({ spec, options }); return null; },
+    setBundleEnabled: async () => ({ application: 'applied' }),
+  };
+  const ctx = setupRuntime({ manager, packageJson: { dependencies: { keep: '1', restore: '3.1.0' } } });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, { dependencies: { keep: '1' } });
+  await ctx.runtime.detectNow();
+  const checkpoint = (await callRoute(ctx.runtime, '/bingo/recovery')).json().checkpoints[0];
+  const response = await callRoute(ctx.runtime, '/bingo/rollback', {
+    method: 'POST',
+    body: JSON.stringify({ confirmed: true, checkpoint: checkpoint.id }),
+  });
+  assert.equal(response.status, 202, response.body);
+  assert.deepEqual(installed.map(call => call.spec), ['restore@3.1.0']);
+  assert.equal(installed[0].options.saveExact, true);
+});
+
+test('rollback is refused while the native manager is busy', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { example: '1' } } });
+  cleanup(ctx, t);
+  writeProfile(ctx.profileDir, { dependencies: { example: '1', extra: '2' } });
+  await ctx.runtime.detectNow();
+  const checkpoint = (await callRoute(ctx.runtime, '/bingo/recovery')).json().checkpoints[0];
+  const logsDir = path.join(ctx.profileDir, '.plugin-manager', 'logs', 'operation-live');
+  fs.mkdirSync(logsDir, { recursive: true });
+  fs.writeFileSync(path.join(logsDir, 'pnpm.log'), 'running', 'utf8');
+  const response = await callRoute(ctx.runtime, '/bingo/rollback', {
+    method: 'POST',
+    body: JSON.stringify({ confirmed: true, checkpoint: checkpoint.id }),
+  });
+  assert.equal(response.status, 409);
+  assert.equal(response.json().code, 'plugin-operation');
+});
+
+test('safe mode really disables community bundles and re-enables them on exit', async (t) => {
+  const toggles = [];
+  const manager = {
+    listBundles: async () => [],
+    listPlugins: async () => [],
+    setBundleEnabled: async (name, enabled) => {
+      toggles.push({ name, enabled });
+      return { application: 'applied' };
+    },
+  };
+  const ctx = setupRuntime({
+    manager,
+    packageJson: {
+      dependencies: { 'dsh-pet': '1', 'dsh-bingo-ren': '1' },
+      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-pet', 'dsh-bingo-ren'] } },
+    },
+  });
+  cleanup(ctx, t);
+  const post = body => callRoute(ctx.runtime, '/bingo/safe-mode', { method: 'POST', body: JSON.stringify(body) });
+  assert.equal((await post({ action: 'enter' })).json().code, 'confirmation-required');
+
+  const entered = await post({ action: 'enter', confirmed: true });
+  assert.equal(entered.status, 202, entered.body);
+  assert.deepEqual(entered.json().targets, ['dsh-pet']);
+  // The manager must actually be told to stop composing the community bundle.
+  assert.deepEqual(toggles, [{ name: 'dsh-pet', enabled: false }]);
+  const status = (await callRoute(ctx.runtime, '/bingo/status')).json();
+  assert.deepEqual(status.safeMode.disabled, ['dsh-pet']);
+  assert.equal(status.safeMode.applied, true);
+
+  const exited = await post({ action: 'exit' });
+  assert.equal(exited.status, 200, exited.body);
+  assert.deepEqual(toggles[1], { name: 'dsh-pet', enabled: true });
+  assert.deepEqual(exited.json().cleared, ['dsh-pet']);
+  assert.equal((await callRoute(ctx.runtime, '/bingo/status')).json().safeMode, null);
+  assert.equal((await post({ action: 'exit' })).json().code, 'not-in-safe-mode');
+});
+
+test('safe mode without a native manager refuses instead of pretending', async (t) => {
+  const ctx = setupRuntime({
+    packageJson: {
+      dependencies: { 'dsh-pet': '1' },
+      dsh: { profile: { bundles: ['dsh-pet'] } },
+    },
+  });
+  cleanup(ctx, t);
+  const response = await callRoute(ctx.runtime, '/bingo/safe-mode', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'enter', confirmed: true }),
+  });
+  assert.equal(response.status, 409);
+  assert.equal(response.json().code, 'manager-unavailable');
+});
+
+test('safe mode reports partial fsailure and keeps the record for a retry', async (t) => {
+  const manager = {
+    listBundles: async () => [],
+    listPlugins: async () => [],
+    setBundleEnabled: async () => ({ application: 'failed', error: { code: 'busy' } }),
+  };
+  const ctx = setupRuntime({
+    manager,
+    packageJson: { dependencies: { 'dsh-pet': '1' }, dsh: { profile: { bundles: ['dsh-pet'] } } },
+  });
+  cleanup(ctx, t);
+  const response = await callRoute(ctx.runtime, '/bingo/safe-mode', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'enter', confirmed: true }),
+  });
+  assert.equal(response.status, 409);
+  assert.equal(response.json().ok, false);
+  assert.equal(response.json().failures.length, 1);
+  const status = (await callRoute(ctx.runtime, '/bingo/status')).json();
+  assert.equal(status.safeMode.applied, false, 'an unapplied record must not claim success');
+});
+
+test('safe mode refuses to run when every bundle is official', async (t) => {
+  const manager = {
+    listBundles: async () => [],
+    listPlugins: async () => [],
+    setBundleEnabled: async () => ({ application: 'applied' }),
+  };
+  const ctx = setupRuntime({
+    manager,
+    packageJson: { dependencies: {}, dsh: { profile: { bundles: ['@deepseek-ai/dsh-base'] } } },
+  });
+  cleanup(ctx, t);
+  const response = await callRoute(ctx.runtime, '/bingo/safe-mode', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'enter', confirmed: true }),
+  });
+  assert.equal(response.status, 409);
+  assert.equal(response.json().code, 'nothing-to-disable');
+});
+
+test('cleanup only deletes scanned leftovers and refuses everything else', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { keep: '1' } } });
+  cleanup(ctx, t);
+  const nodeModules = path.join(ctx.profileDir, 'node_modules');
+  // Only provable leftovers are scanned: a pnpm .ignored copy and a *_tmp_* dir.
+  const orphan = path.join(nodeModules, '.ignored', 'old-name');
+  const tmp = path.join(nodeModules, 'half-installed_tmp_4242_7');
+  fs.mkdirSync(orphan, { recursive: true });
+  fs.mkdirSync(tmp, { recursive: true });
+  fs.writeFileSync(path.join(orphan, 'index.js'), 'x', 'utf8');
+  // Outside both the profile and DSH_HOME: must never be deletable.
+  const outside = path.join(os.tmpdir(), 'bingo-outside-' + Date.now());
+  fs.mkdirSync(outside, { recursive: true });
+  t.after(() => { try { fs.rmSync(outside, { recursive: true, force: true }); } catch (error) {} });
+  const post = body => callRoute(ctx.runtime, '/bingo/cleanup', { method: 'POST', body: JSON.stringify(body) });
+  assert.equal((await post({ paths: [orphan] })).json().code, 'confirmation-required');
+  const response = await post({ confirmed: true, paths: [orphan, outside] });
+  assert.equal(response.status, 200, response.body);
+  assert.equal(response.json().deleted.length, 1);
+  assert.equal(fs.existsSync(orphan), false);
+  assert.equal(fs.existsSync(tmp), true, 'only selected paths are removed');
+  assert.equal(fs.existsSync(outside), true, 'paths outside the scan must never be deleted');
+  assert.equal(response.json().refused.some(item => item.path === outside), true);
+});
+
+test('recovery routes enforce the trust fence', async (t) => {
+  const ctx = setupRuntime({ packageJson: { dependencies: { example: '1' } } });
+  cleanup(ctx, t);
+  const hostile = { host: 'evil.example' };
+  assert.equal((await callRoute(ctx.runtime, '/bingo/recovery', { headers: hostile })).status, 403);
+  const post = pathName => callRoute(ctx.runtime, pathName, { method: 'POST', headers: hostile, body: '{}' });
+  assert.equal((await post('/bingo/rollback')).status, 403);
+  assert.equal((await post('/bingo/safe-mode')).status, 403);
+  assert.equal((await post('/bingo/cleanup')).status, 403);
+});
 test('lastRestart is reconciled from the helper log tail', async (t) => {
   const attemptAt = '2026-01-01T00:00:00.000Z';
   const ctx = setupRuntime({

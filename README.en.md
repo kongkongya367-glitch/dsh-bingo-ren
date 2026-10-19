@@ -1,86 +1,178 @@
 # Bingo
 
-**Install a plugin. Let Bingo take the next shift.**
+**Install a plugin — Bingo takes over from there.**
 
-> It started with one sentence: “You should probably restart.”
+> "Just restart already."
 >
-> Now it also remembers what changed, asks which trials to keep, and shows what the host reports after startup.
+> From remembering that restart, to logging plugin changes, asking whether a trial stays, showing post-boot health, and rolling back when an install goes wrong.
 
-[中文说明](README.md) · [Install](#install) · [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)
+[Install](#install) · [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases) · [中文](README.md)
 
-<img src="assets/readme-hero.png?v=020-preview" width="100%" alt="Bingo: restart reminders, plugin history, trial decisions and startup status in one small button">
+<p align="center"><img src="assets/readme-hero.png?v=040-preview" width="100%" alt="Bingo: install a plugin, Bingo takes over — prompt, history, trials, acceptance, rollback."></p>
 
-Bingo handles the small tasks that follow a plugin installation in **DeepSeek Harness**: remembering the restart, keeping a change trail, following up on a trial, and showing reported runtime state. The interface uses Chinese labels.
+Bingo is the **clean-up crew for DeepSeek Harness plugins**. It lives in one draggable button and picks up the loose ends that appear after you install something.
 
-## The idea: follow through after installation
+You install; it records. You hit “later”; it remembers that exact group. Mark a plugin as a trial and it asks again on the next boot: **keep, or remove?** After a restart you can check reported health — and if an install broke something, roll back to the previous list.
 
-| The moment | What Bingo adds |
+## The idea is what happens *after* installing
+
+| What happens to you | Where Bingo picks up |
 | --- | --- |
-| You install a plugin and forget the restart | Detect additions in the local profile and offer a restart |
-| Something changes and you need a timeline | Keep observed additions, declared-version changes and removals |
-| You install something just to try it | Mark a trial and decide on the next app boot |
-| The app is back and you want to check status | Show native host-reported activation state |
+| You installed a plugin and forgot to restart | Watches the local plugin list and prompts on new entries |
+| Something broke and you can't recall what changed | Records additions, version changes, enable/disable and removals |
+| You installed something to try, then forgot about it | Marks it as a trial and asks on the next boot |
+| You restarted and want to confirm health | Reads host-reported state into an acceptance list |
+| The app won't even open after an install | Safe mode disables community bundles so it starts again |
+| A new version is bad and you want the old one | Rolls the plugin list back to a checkpoint saved before the change |
 
 ## Install
 
-In **Settings → Plugins → Add plugin**, enter:
+In Harness: **Settings → Plugins → Add plugin**, then enter:
 
 ```text
 dsh-bingo-ren
 ```
 
-Or use the repository URL:
+The GitHub URL works too:
 
 ```text
 https://github.com/kongkongya367-glitch/dsh-bingo-ren
 ```
 
-Quit and reopen Harness once after installing or updating. Open **Bingo → 插件记录 · 试用 · 验收** for plugin management.
+**Quit and reopen Harness once after installing or updating** so the new UI loads. Then click **Bingo → plugin manager**.
 
-The host's minimum-release-age policy may hold back a fresh release. Follow the app's prompt to request `dsh-bingo-ren@0.2.0`, or install from GitHub. Manage a running desktop profile through the app; use a separate test profile for CLI development.
+<details>
+<summary>Stuck on an old version, or seeing a “release age” notice?</summary>
 
-## 01 · Remember the restart
+The host's pnpm policy may postpone brand-new releases. Pin an exact version in the app (for example `dsh-bingo-ren@0.4.0`), or install from the GitHub URL above. The installed version reported by the app is authoritative.
 
-Bingo observes the profile manifest while the app runs. When it finds new packages, choose **立即 Bingo** (Restart now), **稍后** (Later), or **本次新增设为试用** (Mark these additions as trials). Later acknowledges this exact set; a newer set can prompt again.
+A running desktop profile should be managed from the in-app plugin page. For CLI development installs, use a separate test profile — see the [development notes](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md).
 
-<p align="center"><img src="assets/screenshot-new-plugin.png?v=020-preview" width="540" alt="Current new-plugin prompt with restart, later and trial actions"></p>
+</details>
 
-Whether a restart is needed depends on the plugin and host loading behavior. **Restart interrupts running tasks; save your work first.**
+## 01 · Someone remembers the restart
 
-## 02 · Keep a useful trail
+Bingo watches the profile's plugin list and prompts when something new appears.
 
-History records observed additions, declared-version changes, removals and trial decisions, separately for each profile. It survives restarts and labels changes first noticed at startup.
+- **Bingo now** — you confirm, and the whole desktop app restarts.
+- **Later** — remembers this exact group; the same group won't nag again, a newer one still will.
+- **Mark these as a trial** — leaves a decision for the next boot.
 
-<img src="assets/screenshot-history.png?v=020-preview" width="100%" alt="Plugin history with timestamps and old/new version declarations">
+<p align="center"><img src="assets/screenshot-new-plugin.png?v=040-preview" width="540" alt="New plugin prompt with restart now, later, and mark-as-trial"></p>
 
-The first run establishes a baseline. Keeps 200 entries and displays the latest 100; unchanged manifest ranges with changed lockfile resolutions are not detected.
+Whether a restart is strictly required depends on how the plugin is loaded. **A restart interrupts running tasks — save your work first.**
 
-## 03 · Try it, then decide
+## 02 · A history you can actually read
 
-Mark an installed plugin or a new group as a trial. On the next app boot, choose **保留** (Keep), **下次启动再问** (Ask next boot), or **移除** (Remove).
+Opens the record of additions, declared version changes, enable/disable toggles, removals and trial decisions. Records are per profile, stored locally, and survive restarts; anything that happened while the app was closed is tagged “found at startup”.
 
-<img src="assets/screenshot-trials.png?v=020-preview" width="100%" alt="A trial awaiting the user's keep, defer or remove decision">
+<img src="assets/screenshot-history.png?v=040-preview" width="100%" alt="Plugin change history with additions, version changes and removals">
 
-Keep ends the reminder. Removal needs a second confirmation and delegates to the native host manager; changed declarations require re-marking first. Trials do not isolate permissions or automatically uninstall packages. Protected or in-use plugins remain subject to host restrictions.
+Recording starts when Bingo is enabled — the first run only establishes a baseline. 200 entries are kept, 100 are shown.
 
-## 04 · Check reported startup state
+## 03 · Try first, decide later
 
-Acceptance shows up to 30 recently changed plugins, or current plugins when there are no changes: active, failed, disabled, pending or unknown. Refresh reads current host state.
+Mark an installed plugin, or the whole group from the new-plugin prompt. **On the next boot Bingo asks:**
 
-<img src="assets/screenshot-checks.png?v=020-preview" width="100%" alt="Dark-mode acceptance checklist showing active, failed and unknown examples">
+**Keep · Ask again next boot · Remove**
 
-Active means host entries are running. Business behavior and the actual loaded code version require separate verification. Missing reliable information stays unknown.
+<img src="assets/screenshot-trials.png?v=040-preview" width="100%" alt="Trial list awaiting a decision, with keep, defer and remove">
+
+Keep ends the reminder. Remove needs a second confirmation and is delegated to the native plugin manager. If the declared version changed, the trial must be re-marked first.
+
+Trials are a reminder mechanism: they do not isolate permissions and never auto-uninstall. Protected or in-use plugins remain subject to host restrictions.
+
+## 04 · A look after boot
+
+**Active · Load failed · Disabled · Pending · Unknown** — up to 30 recently changed plugins, or the current set when nothing changed.
+
+<img src="assets/screenshot-checks.png?v=040-preview" width="100%" alt="Dark-mode acceptance list showing active, failed and unknown">
+
+Active means the host entry is running. Business behaviour and the actually loaded code still need separate verification; missing evidence stays **unknown**.
+
+## 05 · Recovery: roll back when an install goes wrong
+
+Four jobs: rollback, safe mode, leftover cleanup, restart history.
+
+### Rollback
+
+Every inventory change saves a checkpoint (last 8). Pick one and confirm — Bingo then removes packages the checkpoint did not have, reinstalls missing or version-changed ones, and restores the enabled state.
+
+**Only the plugin list and enablement move. Plugin data under `~/.dsh/<plugin>/` is kept.** A restart is required.
+
+Everything goes through the native manager (`removeBundle` / `installBundle` / `setBundleEnabled`); Bingo never edits `package.json` directly.
+
+### Safe mode
+
+When a plugin breaks startup, safe mode **actually disables** every community bundle through the native manager, so the next boot keeps only official base packages plus Bingo. Exiting re-enables exactly the bundles it turned off. If any toggle fails, the UI says “safe mode incomplete” instead of claiming success.
+
+### Leftover cleanup
+
+Only two provable kinds are scanned:
+
+- `.ignored` copies pnpm moved aside
+- `*_tmp_*` directories from interrupted installs
+
+Data directories are offered **only** for packages the journal recorded as removed and whose directory name matches the package name rules.
+
+**Directories that aren't in the manifest are deliberately not scanned.** With `nodeLinker: hoisted` most `node_modules` entries are dependencies of dependencies; deleting them breaks every plugin. Bingo would rather under-report than guess wrong.
+
+Only scanned paths can be deleted, and symlinks or non-directories are always refused.
+
+### Restart history
+
+Every restart reports **total**, **stop** and **relaunch** durations, the average and the slowest so far, plus which plugins changed around it — from the timestamps the helper writes to `~/.dsh/bingo/restart.log`, not estimates. Rotated logs mean older rows disappear; Bingo only shows what it can prove.
+
+## It never races the plugin market
+
+Before rollback, safe mode, cleanup or trial removal, Bingo checks whether the plugin manager has an install or update in flight (its own `operation-*` logs) and answers 409 if so.
+
+**Only the manager's own operation logs count.** A `.pnpm/lock.yaml` stays on disk forever after the first install; treating it as “busy” would block all three features permanently.
 
 ## A small button that stays out of the way
 
-Drag it near an edge to snap; its position survives restarts. Open the panel with `Ctrl+Alt+B` (`Cmd+Alt+B` on macOS). Supports light/dark themes, zero runtime dependencies and MIT licensing. Web mode offers page refresh.
+Drag it near an edge to snap; its position survives restarts. Open the panel with `Ctrl+Alt+B` (`Cmd+Alt+B` on macOS). Light and dark themes, web mode refresh, zero runtime dependencies, MIT licensed.
 
-## Local data and compatibility
+<details>
+<summary>Panel, dark mode and drag examples</summary>
 
-History, trials and logs stay on this machine, without conversation content or telemetry. A confirmed removal delegates package operations to the host, which may contact its configured registry.
+<p align="center"><img src="assets/screenshot-panel.png?v=040-preview" width="400" alt="Restart panel with plugin manager entry"></p>
 
-All images are **real browser captures using mock data**, without real accounts or conversations. The cover presents the product concept; component close-ups show the actual client. Recreate them using the [preview instructions](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/preview/README.md).
+<p align="center"><img src="assets/screenshot-panel-dark.png?v=040-preview" width="400" alt="Dark restart panel"></p>
 
-Requires Node.js 20+ and DeepSeek Harness 0.2.0-rc.1+. Full restart needs the official Electron desktop app; inventory and native removal need host support. See the [development notes](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md) for configuration and local installation.
+<p align="center"><img src="assets/screenshot-dragged.png?v=040-preview" width="440" alt="Panel repositioned after dragging"></p>
 
-[Report an issue](https://github.com/kongkongya367-glitch/dsh-bingo-ren/issues) · [MIT License](LICENSE)
+</details>
+
+## Local data and clear boundaries
+
+History, trials, checkpoints and restart logs live on this machine under `~/.dsh/bingo/`, with no conversation content and no telemetry. Confirmed plugin operations are executed by the host manager, which may contact its configured registry.
+
+All images are **real browser captures using mock data** — no real accounts, chats or installs. Recreate them with the [preview instructions](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/preview/README.md).
+
+<details>
+<summary>Configuration, compatibility and troubleshooting</summary>
+
+Requires **Node.js 20+** and **DeepSeek Harness 0.2.0-rc.1+**. Full restart needs the official Electron desktop app; acceptance, native removal, rollback and safe mode need the matching host APIs. When an API is missing, Bingo says so instead of pretending it worked.
+
+Configure in the profile's `cordis.patch.yml`:
+
+```yaml
+- id: dsh-bingo-ren
+  config:
+    enabled: true
+    pollMs: 4000           # 1500-60000 ms
+    allowRestart: true
+    position: bottom-left # or bottom-right
+    debug: false
+```
+
+- No button: restart once manually and confirm the plugin is enabled.
+- Restart failed: read `~/.dsh/bingo/restart.log`.
+- Acceptance says unknown: the host may not report runtime state; check the native plugin page.
+- All recovery buttons greyed out: the plugin manager is installing or updating; retry afterwards.
+- Uninstall: remove Bingo from the Harness plugin page, then restart. Source-install recovery steps are in the [development notes](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md).
+
+</details>
+
+[Report an issue](https://github.com/kongkongya367-glitch/dsh-bingo-ren/issues) · [Development notes](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md) · [MIT License](LICENSE)

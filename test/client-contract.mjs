@@ -33,7 +33,14 @@ test('client implements the host contract', () => {
     'pointerdown',
     'is-snapping',
     'snapToEdges',
-    'SNAP_THRESHOLD'
+    'SNAP_THRESHOLD',
+    '/recovery',
+    '/rollback',
+    '/safe-mode',
+    '/cleanup',
+    '/timeline',
+    'msText',
+    'triggerText'
   ]) {
     assert.ok(clientJs.includes(marker) || clientCss.includes(marker), 'missing ' + marker);
   }
@@ -55,9 +62,9 @@ test('client avoids forbidden browser APIs and frameworks', () => {
   assert.doesNotMatch(clientJs, /\bReact\b/);
 });
 
-test('client assets stay below the 52 KB budget including plugin management', () => {
+test('client assets stay below the 70 KB budget including plugin management and recovery', () => {
   const total = statSync(join(root, 'client/bingo-client.js')).size + statSync(join(root, 'client/bingo-client.css')).size;
-  assert.ok(total < 52000, 'client js+css is ' + total + ' bytes');
+  assert.ok(total < 70000, 'client js+css is ' + total + ' bytes');
 });
 
 test('preview mocks fetch and exposes every screenshot scene', () => {

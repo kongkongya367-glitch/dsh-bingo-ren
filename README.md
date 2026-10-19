@@ -4,28 +4,30 @@
 
 > “你倒是重启一下啊。”
 >
-> 从替你记住那次重启，到记下插件变更、问你试用要不要留、展示启动后的运行状态。
+> 从替你记住那次重启，到记下插件变更、问你试用要不要留、展示启动后的运行状态，出事还能退回上一份清单。
 
 [安装使用](#安装) · [版本与下载](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases) · [English](README.en.md)
 
-<p align="center"><img src="assets/readme-hero.png?v=020-preview" width="100%" alt="Bingo：装完插件，Bingo 接班。装完提醒、变更留痕、先试再留、启动验收。"></p>
+<p align="center"><img src="assets/readme-hero.png?v=040-preview" width="100%" alt="Bingo：装完插件，Bingo 接班。装完提醒、变更留痕、先试再留、启动验收、装坏能退。"></p>
 
-Bingo 是 **DeepSeek Harness 的插件善后管家**。它住在一枚可拖动的小按钮里，把插件装完后容易忘记的几件事接起来。
+Bingo 是 **DeepSeek Harness 的插件善后管家**。它住在一枚可拖动的小按钮里，把插件装完之后容易忘记的几件事接起来。
 
-你装插件，它记变化。你点“稍后”，它记住这一组。你把新插件标成试用，它在下次启动时再问一句：**留下，还是移除？** 重启之后，还可以打开验收清单看看运行状态。
+你装插件，它记变化。你点“稍后”，它记住这一组。你把新插件标成试用，它在下次启动时再问一句：**留下，还是移除？** 重启之后，可以打开验收清单看运行状态；插件装坏了，还能退回上一份清单。
 
 ## 创意，在“装完之后”
 
-装插件很容易，装完之后的小事却总要人记着。Bingo 围绕四个真实场景设计：
+装插件很容易，装完之后的小事却总要人记着。Bingo 围绕六个真实场景设计：
 
 | 你遇到的事 | Bingo 替你接上哪一步 |
 | --- | --- |
 | 装了新插件，转头就忘记重启 | 观察本地插件清单，发现新增就主动提醒 |
-| 应用出了点问题，想不起最近动过什么 | 留下新增、声明版本变化和移除记录 |
+| 应用出了点问题，想不起最近动过什么 | 留下新增、版本变化、启用/停用和移除记录 |
 | 随手装来试试，过几天忘记要不要留 | 标记试用，下次启动提醒你做决定 |
 | 重启过了，还想确认插件现在的状态 | 读取宿主报告的运行状态，显示验收清单 |
+| 装完反而打不开了 | 安全模式停用社区插件，先让应用能起来 |
+| 新版本有问题，想退回去 | 按变化前留下的检查点回滚插件清单 |
 
-**提醒有记忆，变更有记录，试用有后续，启动有状态可看。**
+**提醒有记忆，变更有记录，试用有后续，启动有状态可看，装坏能退回去。**
 
 ## 安装
 
@@ -41,12 +43,12 @@ dsh-bingo-ren
 https://github.com/kongkongya367-glitch/dsh-bingo-ren
 ```
 
-**安装或更新后，手动退出并重新打开 Harness 一次**，让新的界面加载。之后点击 **Bingo → 插件记录 · 试用 · 验收** 即可打开插件管家。
+**安装或更新后，手动退出并重新打开 Harness 一次**，让新的界面加载。之后点击 **Bingo → 插件管家** 即可打开管理面板。
 
 <details>
 <summary>装到了旧版本，或看到“新版本观察期”？</summary>
 
-宿主的 pnpm 安全策略可能暂缓选择刚发布的版本。可在应用内按提示指定 `dsh-bingo-ren@0.2.0`，或使用上面的 GitHub 地址安装。实际安装版本以安装结果为准。
+宿主的 pnpm 安全策略可能暂缓选择刚发布的版本。可在应用内按提示指定精确版本（如 `dsh-bingo-ren@0.4.0`），或使用上面的 GitHub 地址安装。实际安装版本以安装结果为准。
 
 运行中的 desktop profile 通过应用内插件页管理。CLI 开发安装请使用独立测试 profile，见 [开发说明](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md)。
 
@@ -60,7 +62,7 @@ https://github.com/kongkongya367-glitch/dsh-bingo-ren
 - **稍后**：记住当前这一组；同一组不重复提醒，再有新插件还会出现。
 - **本次新增设为试用**：给这组插件留一个下次启动时再做决定的入口。
 
-<p align="center"><img src="assets/screenshot-new-plugin.png?v=020-preview" width="540" alt="新版 Bingo 新插件提醒，包含立即重启、稍后和本次新增设为试用三个选择"></p>
+<p align="center"><img src="assets/screenshot-new-plugin.png?v=040-preview" width="540" alt="新版 Bingo 新插件提醒，包含立即重启、稍后和本次新增设为试用三个选择"></p>
 
 是否必须重启取决于插件与宿主的加载方式。**重启会中断正在运行的任务，请先保存工作。**
 
@@ -68,9 +70,9 @@ https://github.com/kongkongya367-glitch/dsh-bingo-ren
 
 “最近是不是装了什么？”——打开变更记录就能回看。
 
-记录新增、声明版本变化、移除，以及试用的开始与保留。记录按 profile 分开保存在本机，退出应用后仍然保留；应用关闭期间发生的变化，会在下次启动时标记为“启动时发现”。
+记录新增、声明版本变化、启用/停用、移除，以及试用的开始与保留。记录按 profile 分开保存在本机，退出应用后仍然保留；应用关闭期间发生的变化，会在下次启动时标记为“启动时发现”。
 
-<img src="assets/screenshot-history.png?v=020-preview" width="100%" alt="插件变更记录：清楚列出新增、版本变更与移除，并保留时间和前后版本">
+<img src="assets/screenshot-history.png?v=040-preview" width="100%" alt="插件变更记录：清楚列出新增、版本变更与移除，并保留时间和前后版本">
 
 从启用 Bingo 后开始记录，首次启用只建立基线。保存最近 200 条，界面展示最近 100 条。
 
@@ -82,7 +84,7 @@ https://github.com/kongkongya367-glitch/dsh-bingo-ren
 
 **保留 · 下次启动再问 · 移除**
 
-<img src="assets/screenshot-trials.png?v=020-preview" width="100%" alt="临时试用：下次启动后显示待决定，并提供保留、下次启动再问和移除按钮">
+<img src="assets/screenshot-trials.png?v=040-preview" width="100%" alt="临时试用：下次启动后显示待决定，并提供保留、下次启动再问和移除按钮">
 
 “保留”结束提醒；“移除”需要再次确认，再交由 Harness 原生插件管理器执行。安装声明发生变化时，需要重新标记试用后才能移除。
 
@@ -94,11 +96,62 @@ https://github.com/kongkongya367-glitch/dsh-bingo-ren
 
 **运行中 · 加载失败 · 已禁用 · 等待启动 · 无法确认**
 
-<img src="assets/screenshot-checks.png?v=020-preview" width="100%" alt="深色模式下的验收清单，分别展示运行中、加载失败和无法确认的示例状态">
+<img src="assets/screenshot-checks.png?v=040-preview" width="100%" alt="深色模式下的验收清单，分别展示运行中、加载失败和无法确认的示例状态">
 
 优先展示最近变更的插件，最多 30 个；没有变更时展示当前插件。点“刷新”可重新读取状态。
 
 “运行中”表示宿主条目已启动；业务功能和实际加载的代码版本仍需另行验证。缺少可靠信息时，清单会保留“无法确认”。
+
+## 05 · 装坏了，能退回去
+
+这是「恢复」页，管四件事：回滚、安全模式、残留清理、重启记录。
+
+### 回滚：退回装它之前
+
+每次插件清单发生变化，Bingo 自动留下一个检查点（最近 8 个）。在「恢复」页选一个时间点，点「回滚到这里」再确认，Bingo 会按那份清单：
+
+- 移除检查点里没有的插件
+- 重装缺失或版本变了的插件
+- 把启用状态改回检查点时的样子
+
+**回滚只动插件清单和启用状态，插件自己的数据目录（`~/.dsh/<插件名>/`）保留。** 回滚完成后需要重启才会生效。
+
+回滚全程走 Harness 原生插件管理器（`removeBundle` / `installBundle` / `setBundleEnabled`），不直接改 `package.json`。
+
+### 安全模式：先让应用能打开
+
+装坏插件、连界面都进不去时，进入安全模式：Bingo 通过原生管理器**真的停用**所有社区插件，重启后只剩官方基础包和 Bingo 自己。
+
+退出安全模式会把刚才停用的那些插件重新启用，同样需要重启生效。如果某个插件停用失败，界面会标成“安全模式未完成”，可以重试。
+
+### 残留清理：只删能证明是垃圾的
+
+扫描两类**可证明**的残留：
+
+- `.ignored` 里 pnpm 移走的旧副本
+- `*_tmp_*` 这种中断的安装目录
+
+另外，如果 Bingo 的记录里明确看到某个插件被移除、并且它的数据目录名能对上（包名去掉 `dsh-` 前缀等规则），才会把那个数据目录也列出来。
+
+**故意不扫“清单里没有的包目录”。** 在 `nodeLinker: hoisted` 下，`node_modules` 里绝大多数目录是依赖的依赖，删掉会让所有插件一起坏掉。宁可漏报，也不会误报。
+
+只接受扫描结果里的路径；符号链接和非目录一律拒绝，避免顺着链接删掉别的东西。
+
+### 重启记录：哪次、多长、动了谁
+
+每次 Bingo 一下之后，都能在「恢复」页看到：
+
+- **总耗时**、**停止旧进程**、**拉起新进程**三段分别是多久
+- 平均耗时和至今最慢的一次
+- 这次重启前后，有**哪些插件发生了变化**（新增 / 升级 / 移除）
+
+数据来自 helper 写在 `~/.dsh/bingo/restart.log` 的真实时间戳，不是估算值。日志被轮转或删除后，更早的记录会消失——Bingo 只展示能拿出证据的部分。
+
+## 不会和插件市场抢着写
+
+回滚、安全模式、清理、试用移除之前，Bingo 都会先检查插件管理器是不是正在安装或更新（看它自己的 `operation-*` 日志）。正在忙就返回 409 并提示稍后再试，避免两个 pnpm 操作同时改同一个目录。
+
+**只看插管器自己的操作日志**：`.pnpm/lock.yaml` 这种文件在装过一次之后就永久存在，拿它当“正在忙”会让这三个功能永远没法用。
 
 ## 一枚按钮，随手放
 
@@ -110,24 +163,24 @@ https://github.com/kongkongya367-glitch/dsh-bingo-ren
 <details>
 <summary>查看重启面板、深色模式与拖动示例</summary>
 
-<p align="center"><img src="assets/screenshot-panel.png?v=020-preview" width="400" alt="Bingo 0.2.0 重启面板及插件管家入口"></p>
+<p align="center"><img src="assets/screenshot-panel.png?v=040-preview" width="400" alt="Bingo 重启面板及插件管家入口"></p>
 
-<p align="center"><img src="assets/screenshot-panel-dark.png?v=020-preview" width="400" alt="深色重启面板"></p>
+<p align="center"><img src="assets/screenshot-panel-dark.png?v=040-preview" width="400" alt="深色重启面板"></p>
 
-<p align="center"><img src="assets/screenshot-dragged.png?v=020-preview" width="440" alt="Bingo 拖动到右上角后重新定位的面板"></p>
+<p align="center"><img src="assets/screenshot-dragged.png?v=040-preview" width="440" alt="Bingo 拖动到右上角后重新定位的面板"></p>
 
 </details>
 
 ## 本地记录，清楚边界
 
-变更记录、试用状态与日志保存在本机，不记录聊天内容，不发送遥测。用户确认移除时，由宿主管理器执行包管理操作，可能访问其配置的注册表。
+变更记录、试用状态、检查点、重启日志都保存在本机（`~/.dsh/bingo/`），不记录聊天内容，不发送遥测。用户确认执行插件操作时，由宿主管理器完成，可能访问其配置的注册表。
 
 页面中的图片均为 **当前客户端在真实浏览器中的模拟数据预览**；无真实账号、聊天或安装数据。封面用于说明产品思路，组件特写来自实际界面。可用 [预览脚本](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/preview/README.md) 重拍。
 
 <details>
 <summary>配置、兼容性与排查</summary>
 
-需要 **Node.js 20+** 与 **DeepSeek Harness 0.2.0-rc.1+**。完整重启依赖官方 Electron 桌面端；验收与原生移除依赖宿主提供相应接口。接口不可用时，Bingo 会显示无法确认或引导到原生插件页。
+需要 **Node.js 20+** 与 **DeepSeek Harness 0.2.0-rc.1+**。完整重启依赖官方 Electron 桌面端；验收、原生移除、回滚和安全模式依赖宿主提供相应接口。接口不可用时，Bingo 会明确提示不可用，而不是假装成功。
 
 可在 profile 的 `cordis.patch.yml` 中配置：
 
@@ -146,6 +199,7 @@ https://github.com/kongkongya367-glitch/dsh-bingo-ren
 - 没有按钮：手动重启一次，确认插件已启用。
 - 重启失败：查看 `~/.dsh/bingo/restart.log`。
 - 验收显示无法确认：检查宿主是否提供运行状态，或到原生插件页查看。
+- 恢复页三个按钮都是灰的：说明插件管理器正在安装/更新，等它完成再试。
 - 卸载：在 Harness 插件页移除 Bingo，再重启。源码安装的恢复方法见 [开发说明](https://github.com/kongkongya367-glitch/dsh-bingo-ren/blob/main/SPEC.md)。
 
 </details>

@@ -222,6 +222,7 @@
 .bingo-muted { font-size: 12px; line-height: 1.6; color: var(--bingo-ink-2); overflow-wrap: anywhere; margin: 6px 0 10px; }
 .bingo-record { padding: 12px 0; border-bottom: 1px solid var(--bingo-border); font-size: 13px; overflow-wrap: anywhere; }
 .bingo-record strong { display: block; font-weight: 600; }
+.bingo-pkgs--inline { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0 0; padding: 0; list-style: none; font-size: 11.5px; color: var(--bingo-ink-3); }
 .bingo-record-actions, .bingo-trial-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .bingo-record-actions .bingo-btn, .bingo-trial-controls .bingo-btn { width: auto; flex: none; min-height: 32px; padding: 5px 12px; }
 .bingo-select { flex: 1; min-width: 120px; max-width: 100%; border: 1px solid var(--bingo-border); border-radius: 8px; color: var(--bingo-ink); background: var(--bingo-surface); padding: 7px; }

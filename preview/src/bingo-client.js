@@ -6,7 +6,7 @@
 
   var VERSION = typeof window.__DSH_BINGO_VERSION__ === 'string' && window.__DSH_BINGO_VERSION__
     ? window.__DSH_BINGO_VERSION__
-    : '0.2.0';
+    : '0.4.0';
   var API = '/bingo';
   var CSS_URL = typeof window.__DSH_BINGO_CLIENT_CSS__ === 'string' && window.__DSH_BINGO_CLIENT_CSS__
     ? window.__DSH_BINGO_CLIENT_CSS__
@@ -77,7 +77,7 @@
     '<div class="bingo-layer bingo-layer--dialog" data-el="deskLayer" hidden>',
     '<section class="bingo-desk" data-el="desk" role="dialog" aria-modal="true" aria-labelledby="bingo-desk-title" tabindex="-1">',
     '<header class="bingo-head"><strong id="bingo-desk-title">Bingo 插件管家</strong><button class="bingo-iconbtn" data-el="deskClose" type="button" aria-label="关闭插件管家">' + ICON_CLOSE + '</button></header>',
-    '<nav class="bingo-tabs" aria-label="插件管理"><button data-el="historyTab" type="button">变更记录</button><button data-el="trialsTab" type="button">临时试用</button><button data-el="checksTab" type="button">验收清单</button></nav>',
+    '<nav class="bingo-tabs" aria-label="插件管理"><button data-el="historyTab" type="button">变更记录</button><button data-el="trialsTab" type="button">临时试用</button><button data-el="recoveryTab" type="button">恢复</button><button data-el="checksTab" type="button">验收清单</button></nav>',
     '<div class="bingo-desk-toolbar"><span data-el="deskMessage" role="status" aria-live="polite"></span><button class="bingo-btn bingo-btn--ghost" data-el="deskRefresh" type="button">刷新</button></div>',
     '<div class="bingo-desk-content" data-el="deskContent"></div>',
     '</section></div>',
@@ -121,6 +121,13 @@
     activityLoading: false,
     removeConfirm: '',
     reviewSeen: Object.create(null),
+    recovery: null,
+    timeline: null,
+    recoveryLoading: false,
+    rollbackConfirm: '',
+    safeConfirm: false,
+    cleanupPick: Object.create(null),
+    cleanupConfirm: false,
   };
 
   var host = null;
@@ -810,7 +817,15 @@
       'removal-incomplete': '插件清单仍包含该插件，请到 Harness 插件页确认移除结果。',
       'operation-busy': '有操作正在进行，请稍候。',
       'state-unwritable': '记录无法保存，请检查本机状态目录权限。',
-      'trial-limit': '试用列表已满，请先保留或移除部分试用插件。'
+      'trial-limit': '试用列表已满，请先保留或移除部分试用插件。',
+      'confirmation-required': '请再确认一次。',
+      'checkpoint-missing': '这个回滚点已失效，请刷新后重试。',
+      'invalid-checkpoint': '回滚点无效，请刷新后重试。',
+      'nothing-to-disable': '当前没有可停用的社区插件。',
+      'not-in-safe-mode': '当前不在安全模式。',
+      'plugin-operation': '插件管理器正在安装或更新，等它完成后重试。',
+      'pnpm-lock': 'pnpm 正在占用目录，等它完成后重试。',
+      'restarting': '正在重启，请稍候。',
     };
     return messages[code] || '操作未完成，请刷新查看当前状态后重试。';
   }
@@ -893,6 +908,111 @@
         row.appendChild(actions);
         if (!trial.removable && !trial.versionChanged) row.appendChild(el('p', 'bingo-muted', '当前不能在 Bingo 中移除，请在 Harness 插件页查看。'));
       });
+    } else if (S.deskTab === 'recovery') {
+      note('回滚只退回插件清单，插件数据保留；安全模式暂时停用社区插件。任何操作都要重启后才生效。');
+      var rec = S.recovery;
+      if (!rec) { content.appendChild(el('p', 'bingo-muted', '正在读取恢复信息…')); return; }
+      if (rec.warning) note(rec.warning);
+      if (rec.safeMode) {
+        var applied = rec.safeMode.applied !== false;
+        var safeRow = card(applied ? '安全模式已启用' : '安全模式未完成',
+          (rec.safeMode.disabled || []).length + ' 个社区插件被停用 · ' + formatTime(rec.safeMode.at)
+            + (applied ? '' : ' · 有插件没能停用，可以重试'));
+        var safeActions = el('div', 'bingo-record-actions');
+        safeActions.appendChild(deskButton('退出安全模式', function () {
+          if (!S.safeConfirm) {
+            S.safeConfirm = true;
+            els.deskMessage.textContent = '退出安全模式会重新启用这些插件，需要重启后生效。';
+            renderDesk();
+            return;
+          }
+          performSafeMode('exit');
+        }));
+        if (S.safeConfirm) safeActions.appendChild(deskButton('取消', function () { S.safeConfirm = false; renderDesk(); }));
+        safeRow.appendChild(safeActions);
+      } else {
+        var enterRow = card('插件装坏了的应急处理', '停用所有社区插件后重启，只保留官方基础包。之后可以逐个重新启用。');
+        var enterActions = el('div', 'bingo-record-actions');
+        enterActions.appendChild(deskButton(S.safeConfirm ? '确认进入安全模式' : '进入安全模式', function () {
+          if (!S.safeConfirm) {
+            S.safeConfirm = true;
+            els.deskMessage.textContent = '进入会停用 ' + ((rec.packages || []).length) + ' 个插件里的社区部分，只保留官方基础包，需要重启后生效。';
+            renderDesk();
+            return;
+          }
+          performSafeMode('enter');
+        }, rec.busy && rec.busy.busy));
+        if (S.safeConfirm) enterActions.appendChild(deskButton('取消', function () { S.safeConfirm = false; renderDesk(); }));
+        enterRow.appendChild(enterActions);
+      }
+      note('最近重启（耗时来自 helper 日志）：');
+      var tl = S.timeline;
+      if (!tl) note('正在读取重启记录…');
+      else if (!tl.items || !tl.items.length) note('还没有重启记录。点「Bingo 一下」之后这里会出现耗时。');
+      else {
+        if (tl.stats && tl.stats.count) note('已记录 ' + tl.stats.count + ' 次重启，平均 ' + msText(tl.stats.avgMs) + '，最长 ' + msText(tl.stats.maxMs) + '。');
+        tl.items.forEach(function (item) {
+          var row = card((item.ok === false ? '重启失败' : '重启完成') + ' · ' + formatTime(item.requestedAt),
+            msText(item.totalMs) + ' 总计 · 停止 ' + msText(item.phases.stopMs) + ' · 拉起 ' + msText(item.phases.launchMs) + ' · 触发：' + triggerText(item.trigger));
+          if (item.plugins && item.plugins.length) {
+            var list = el('ul', 'bingo-pkgs bingo-pkgs--inline');
+            item.plugins.forEach(function (p) {
+              list.appendChild(el('li', '', kindText(p.kind) + ' ' + p.name + (p.to ? ' ' + p.to : '')));
+            });
+            row.appendChild(list);
+          } else {
+            row.appendChild(el('p', 'bingo-muted', '本次重启前后没有记录到插件变化。'));
+          }
+        });
+      }
+      note('最近可回滚的时间点：');
+      if (!rec.checkpoints || !rec.checkpoints.length) note('还没有可回滚的记录。安装或更新插件后会自动留下一个时间点。');
+      (rec.checkpoints || []).forEach(function (cp) {
+        var row = card('回滚到 ' + formatTime(cp.at), cp.count + ' 个插件 · 触发于' + reasonText(cp.reason));
+        var actions = el('div', 'bingo-record-actions');
+        actions.appendChild(deskButton(S.rollbackConfirm === cp.id ? '确认回滚' : '回滚到这里', function () {
+          if (S.rollbackConfirm !== cp.id) {
+            S.rollbackConfirm = cp.id;
+            els.deskMessage.textContent = '回滚会按这份清单增删插件，插件数据保留；完成后需要重启。';
+            renderDesk();
+            return;
+          }
+          performRollback(cp.id);
+        }, rec.busy && rec.busy.busy));
+        if (S.rollbackConfirm === cp.id) actions.appendChild(deskButton('取消', function () { S.rollbackConfirm = ''; renderDesk(); }));
+        row.appendChild(actions);
+      });
+      note('残留文件（可安全删除）：');
+      if (!rec.leftovers || !rec.leftovers.length) note('没有发现残留文件。');
+      (rec.leftovers || []).forEach(function (item) {
+        var size = item.bytes ? Math.max(1, Math.round(item.bytes / 1024)) + ' KB' : '大小未知';
+        var row = card(leftoverLabel(item.kind) + ' · ' + item.name, size + ' · ' + item.path);
+        var box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = !!S.cleanupPick[item.path];
+        box.setAttribute('aria-label', '选择删除 ' + item.name);
+        box.addEventListener('change', function () {
+          S.cleanupPick[item.path] = box.checked;
+        });
+        row.insertBefore(box, row.firstChild);
+        content.appendChild(row);
+      });
+      if (rec.leftovers && rec.leftovers.length) {
+        var actions2 = el('div', 'bingo-record-actions');
+        actions2.appendChild(deskButton(S.cleanupConfirm ? '确认删除所选' : '删除所选', function () {
+          var paths = Object.keys(S.cleanupPick).filter(function (p) { return S.cleanupPick[p]; });
+          if (!paths.length) { els.deskMessage.textContent = '请先勾选要删除的残留。'; return; }
+          if (!S.cleanupConfirm) {
+            S.cleanupConfirm = true;
+            els.deskMessage.textContent = '将删除 ' + paths.length + ' 个目录，此操作不可撤销。';
+            renderDesk();
+            return;
+          }
+          performCleanup(paths);
+        }, rec.busy && rec.busy.busy));
+        if (S.cleanupConfirm) actions2.appendChild(deskButton('取消', function () { S.cleanupConfirm = false; renderDesk(); }));
+        content.appendChild(actions2);
+      }
     } else {
       note('宿主连接正常。检查最近变更的插件，最多 30 个；无变更时显示当前插件。');
       note('“运行中”表示宿主条目已启动，不代表插件业务功能或运行代码版本已独立测试。仅有安装文件时不会判定通过。');
@@ -907,6 +1027,132 @@
     }
   }
 
+
+  function reasonText(reason) {
+    var map = { change: '插件变化', manual: '手动记录', 'safe-mode': '安全模式', 'before-rollback': '回滚前' };
+    return map[reason] || reason || '插件变化';
+  }
+
+  function leftoverLabel(kind) {
+    var map = { ignored: '被移到 .ignored 的旧副本', tmp: '安装中断的临时目录', orphan: '清单里没有的包目录', data: '已卸载插件的数据目录' };
+    return map[kind] || '残留';
+  }
+
+  function msText(value) {
+    if (typeof value !== 'number' || value < 0) return '未知';
+    if (value < 1000) return value + ' ms';
+    return (value / 1000).toFixed(1) + ' s';
+  }
+
+  function triggerText(trigger) {
+    var map = { button: '手动点击', 'new-plugin': '新插件提醒', shortcut: '快捷键' };
+    return map[trigger] || trigger || '未知';
+  }
+
+  function kindText(kind) {
+    var map = { added: '新增', updated: '升级', removed: '移除' };
+    return map[kind] || '变更';
+  }
+  function loadRecovery() {
+    if (S.recoveryLoading) return Promise.resolve();
+    S.recoveryLoading = true;
+    loadTimeline();
+    return request(API + '/recovery', { timeout: 20000 }).then(function (data) {
+      if (!data || data.ok === false) throw new Error('Bad recovery');
+      S.recovery = data;
+      els.deskMessage.textContent = data.warning || '记录仅保存在本机';
+    }).catch(function (error) {
+      els.deskMessage.textContent = activityError(error);
+    }).then(function () {
+      S.recoveryLoading = false;
+      renderDesk();
+    });
+  }
+
+  function loadTimeline() {
+    return request(API + '/timeline', { timeout: 15000 }).then(function (data) {
+      if (!data || data.ok === false) throw new Error('Bad timeline');
+      S.timeline = data;
+      if (S.deskTab === 'recovery' && S.desk) renderDesk();
+    }).catch(function () {
+      S.timeline = { ok: true, items: [], stats: { count: 0, avgMs: null, maxMs: null } };
+    });
+  }
+
+  function performRollback(checkpoint) {
+    if (S.activityBusy) return;
+    S.activityBusy = true;
+    els.deskMessage.textContent = '正在按检查点回滚…';
+    renderDesk();
+    request(API + '/rollback', { method: 'POST', body: JSON.stringify({ confirmed: true, checkpoint: checkpoint }), timeout: 120000 })
+      .then(function (data) {
+        S.rollbackConfirm = '';
+        if (data.changed === false) els.deskMessage.textContent = '当前清单已经是这个状态，无需回滚。';
+        else {
+          var plan = data.plan || {};
+          var parts = [];
+          if ((plan.remove || []).length) parts.push('移除 ' + plan.remove.length);
+          if ((plan.install || []).length) parts.push('重装 ' + plan.install.length);
+          if ((plan.enable || []).length) parts.push('启用 ' + plan.enable.length);
+          if ((plan.disable || []).length) parts.push('停用 ' + plan.disable.length);
+          els.deskMessage.textContent = '回滚完成（' + (parts.join('、') || '无变化') + '），需要重启后生效。';
+        }
+        refreshAfterMutation();
+      })
+      .catch(function (error) {
+        els.deskMessage.textContent = activityError(error);
+      })
+      .then(function () {
+        S.activityBusy = false;
+        renderDesk();
+      });
+  }
+
+  function performSafeMode(action) {
+    if (S.activityBusy) return;
+    S.activityBusy = true;
+    els.deskMessage.textContent = action === 'enter' ? '正在记录安全模式…' : '正在退出安全模式…';
+    renderDesk();
+    request(API + '/safe-mode', { method: 'POST', body: JSON.stringify({ action: action, confirmed: true }), timeout: 30000 })
+      .then(function () {
+        S.safeConfirm = false;
+        els.deskMessage.textContent = action === 'enter' ? '已进入安全模式，重启后只剩官方插件。' : '已退出安全模式，请在设置里重新启用需要的插件。';
+        refreshAfterMutation();
+      })
+      .catch(function (error) {
+        els.deskMessage.textContent = activityError(error);
+      })
+      .then(function () {
+        S.activityBusy = false;
+        renderDesk();
+      });
+  }
+
+  function performCleanup(paths) {
+    if (S.activityBusy) return;
+    S.activityBusy = true;
+    els.deskMessage.textContent = '正在删除…';
+    renderDesk();
+    request(API + '/cleanup', { method: 'POST', body: JSON.stringify({ confirmed: true, paths: paths }), timeout: 60000 })
+      .then(function (data) {
+        S.cleanupConfirm = false;
+        S.cleanupPick = Object.create(null);
+        els.deskMessage.textContent = '已删除 ' + (data.deleted || []).length + ' 个残留目录。';
+        refreshAfterMutation();
+      })
+      .catch(function (error) {
+        els.deskMessage.textContent = activityError(error);
+      })
+      .then(function () {
+        S.activityBusy = false;
+        renderDesk();
+      });
+  }
+
+  function refreshAfterMutation() {
+    loadActivity();
+    loadRecovery();
+  }
   function loadActivity() {
     if (S.activityLoading) return Promise.resolve();
     S.activityLoading = true;
@@ -931,9 +1177,13 @@
     S.desk = true;
     S.deskTab = tab || 'history';
     S.removeConfirm = '';
+    S.rollbackConfirm = '';
+    S.safeConfirm = false;
+    S.cleanupConfirm = false;
     els.deskLayer.hidden = false;
     renderDesk();
     loadActivity();
+    loadRecovery();
     try { els.desk.focus({ preventScroll: true }); } catch (err) {}
   }
 
@@ -1117,13 +1367,19 @@
     els.manage.addEventListener('click', function () { openDesk('history'); });
     els.tryGroup.addEventListener('click', trialPendingGroup);
     els.deskClose.addEventListener('click', function () { closeDesk(); });
-    els.deskRefresh.addEventListener('click', loadActivity);
+    els.deskRefresh.addEventListener('click', function () {
+      loadActivity();
+      loadRecovery();
+    });
     els.deskLayer.addEventListener('pointerdown', function (event) { if (event.target === els.deskLayer) closeDesk(); });
-    ['history', 'trials', 'checks'].forEach(function (tab) {
+    ['history', 'trials', 'recovery', 'checks'].forEach(function (tab) {
       els[tab + 'Tab'].addEventListener('click', function () {
         if (S.activityBusy) return;
         S.deskTab = tab;
         S.removeConfirm = '';
+        S.safeConfirm = false;
+        S.cleanupConfirm = false;
+        if (tab === 'recovery' && !S.recovery) loadRecovery();
         renderDesk();
       });
     });
