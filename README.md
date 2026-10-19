@@ -24,6 +24,8 @@
 
 ## 安装
 
+> **0.2.0 发布状态：** 新功能已在 [GitHub Release](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/tag/v0.2.0) 提供。npm 尚待本次身份验证，当前 npm 最新版仍为 0.1.3；体验新功能请使用下面的 GitHub 仓库地址安装。
+
 在 **设置 → 插件 → 添加插件** 中输入：
 
 ```text

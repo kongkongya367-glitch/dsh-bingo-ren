@@ -22,6 +22,8 @@ Images use mock data. The button, panel and dialog images are design renders; th
 
 ## Install
 
+> **0.2.0 availability:** The new features are available in the [GitHub Release](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/tag/v0.2.0). npm publication is awaiting authentication; npm latest remains 0.1.3. Use the GitHub repository URL below for the new features.
+
 In **Settings → Plugins → Add plugin**, enter:
 
 ```text

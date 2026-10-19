@@ -34,3 +34,7 @@ npm view dsh-bingo-ren version dist.tarball
 材料位于 `market/`。按目标仓库当前的贡献规则添加一个插件 YAML 条目，并检查仓库年龄、topic、manifest 和截图声明。PR 合并后才能称为已收录。
 
 安装测试应使用独立 profile，不操作运行中的 desktop profile。
+
+## 0.2.0 发布进度
+
+GitHub 源码、标签与 Release 安装包已发布并校验。npm 发布因浏览器验证会话过期而中断，当前 latest 仍为 0.1.3。重新完成 npm 身份验证、核对 registry 下载包后，再移除 README 中的待发布提示。
