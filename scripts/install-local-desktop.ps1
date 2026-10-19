@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   For evaluating Bingo before it is published. It copies this checkout into
-  <DSH_HOME>/profiles/<ProfileName>/node_modules/dsh-bingo-restart, backs up the
+  <DSH_HOME>/profiles/<ProfileName>/node_modules/dsh-bingo-ren, backs up the
   profile's package.json, then adds the dependency and the dsh.profile.bundles entry.
 
   This edits the real profile, so quit DeepSeek Harness first. The script does not
@@ -50,7 +50,7 @@ $ErrorActionPreference = 'Stop'
 $repoDir = Split-Path -Parent $PSScriptRoot
 $repoManifest = Join-Path $repoDir 'package.json'
 if (-not (Test-Path -LiteralPath $repoManifest)) {
-  throw "Cannot find package.json in '$repoDir'. Run this script from a checkout of dsh-bingo-restart."
+  throw "Cannot find package.json in '$repoDir'. Run this script from a checkout of dsh-bingo-ren."
 }
 
 if ($ProfileName -notmatch '^[A-Za-z0-9._-]+$') {
@@ -74,7 +74,7 @@ $profileDir = Join-Path (Join-Path $DshHome 'profiles') $ProfileName
 $manifestPath = Join-Path $profileDir 'package.json'
 $backupPath = Join-Path $profileDir 'package.json.bingo-backup'
 $nodeModulesDir = Join-Path $profileDir 'node_modules'
-$targetDir = Join-Path $nodeModulesDir 'dsh-bingo-restart'
+$targetDir = Join-Path $nodeModulesDir 'dsh-bingo-ren'
 
 function Assert-HarnessClosed {
   param([switch]$SkipCheck)
@@ -142,7 +142,7 @@ if ($Uninstall) {
     Copy-Item -LiteralPath $backupPath -Destination $manifestPath -Force
   }
   if (Test-Path -LiteralPath $targetDir) {
-    if ($PSCmdlet.ShouldProcess($targetDir, 'Remove copied dsh-bingo-restart package')) {
+    if ($PSCmdlet.ShouldProcess($targetDir, 'Remove copied dsh-bingo-ren package')) {
       Remove-Item -LiteralPath $targetDir -Recurse -Force
     }
   }
@@ -190,7 +190,7 @@ else {
 }
 
 # Copy the package into node_modules, replacing a previous local copy.
-if ($PSCmdlet.ShouldProcess($targetDir, 'Copy dsh-bingo-restart into profile node_modules')) {
+if ($PSCmdlet.ShouldProcess($targetDir, 'Copy dsh-bingo-ren into profile node_modules')) {
   if (Test-Path -LiteralPath $targetDir) {
     Remove-Item -LiteralPath $targetDir -Recurse -Force
   }
@@ -208,24 +208,24 @@ Ensure-ObjectProperty -Object $manifest.dsh -Name 'profile'
 Ensure-ArrayProperty -Object $manifest.dsh.profile -Name 'bundles'
 
 $dependencyValue = "link:$repoDir"
-$existingDependency = $manifest.dependencies.PSObject.Properties['dsh-bingo-restart']
+$existingDependency = $manifest.dependencies.PSObject.Properties['dsh-bingo-ren']
 if ($null -eq $existingDependency) {
-  $manifest.dependencies | Add-Member -MemberType NoteProperty -Name 'dsh-bingo-restart' -Value $dependencyValue
+  $manifest.dependencies | Add-Member -MemberType NoteProperty -Name 'dsh-bingo-ren' -Value $dependencyValue
 }
 else {
-  $manifest.dependencies.'dsh-bingo-restart' = $dependencyValue
+  $manifest.dependencies.'dsh-bingo-ren' = $dependencyValue
 }
 
 $bundles = @($manifest.dsh.profile.bundles)
-if ($bundles -notcontains 'dsh-bingo-restart') {
-  $manifest.dsh.profile.bundles = @($bundles + 'dsh-bingo-restart')
-  Write-Host "Bundles  : added 'dsh-bingo-restart'"
+if ($bundles -notcontains 'dsh-bingo-ren') {
+  $manifest.dsh.profile.bundles = @($bundles + 'dsh-bingo-ren')
+  Write-Host "Bundles  : added 'dsh-bingo-ren'"
 }
 else {
-  Write-Host "Bundles  : 'dsh-bingo-restart' already selected"
+  Write-Host "Bundles  : 'dsh-bingo-ren' already selected"
 }
 
-if ($PSCmdlet.ShouldProcess($manifestPath, "Add dsh-bingo-restart dependency ($dependencyValue) and bundle entry")) {
+if ($PSCmdlet.ShouldProcess($manifestPath, "Add dsh-bingo-ren dependency ($dependencyValue) and bundle entry")) {
   Write-ProfileManifest -Manifest $manifest
   Write-Host "Updated  : '$manifestPath'"
 }

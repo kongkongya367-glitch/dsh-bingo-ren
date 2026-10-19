@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Validate the npm tarball file list for dsh-bingo-restart.
+  Validate the npm tarball file list for dsh-bingo-ren.
 
 .DESCRIPTION
   Runs 'npm pack --dry-run --json', prints the included files, and fails when the

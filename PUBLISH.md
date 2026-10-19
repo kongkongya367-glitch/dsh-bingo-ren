@@ -10,10 +10,10 @@ Bingo is not on npm and is not listed in the community plugin directory.
 
 | Item | State |
 | --- | --- |
-| Package name | `dsh-bingo-restart` (chosen because `dsh-bingo` is already taken on npm) |
+| Package name | `dsh-bingo-ren` (chosen because `dsh-bingo` is already taken on npm) |
 | npm | **Not published** |
 | Community directory | **Not submitted**; draft only in `market/` |
-| Repository URL | **Placeholder** `https://github.com/your-name/dsh-bingo-restart` |
+| Repository URL | **Placeholder** `https://github.com/your-name/dsh-bingo-ren` |
 | Version | `0.1.1` |
 
 ## 2. Replace the placeholders
@@ -61,7 +61,7 @@ The tarball must include `lib/`, `client/`, `cordis.patch.yml`, both READMEs,
 
 ```sh
 # 5. Re-check the name before publishing
-npm view dsh-bingo-restart version
+npm view dsh-bingo-ren version
 # On 2026-10-19 this returned 404 (name free); dsh-bingo exists at 0.0.1.
 # A version here on publish day means the name was taken in the meantime and
 # the package name must be changed first. Re-check; never guess.
@@ -72,7 +72,7 @@ running `desktop` profile:
 
 ```sh
 npm pack
-dsh plugin --profile bingo-selftest add ./dsh-bingo-restart-0.1.1.tgz
+dsh plugin --profile bingo-selftest add ./dsh-bingo-ren-0.1.1.tgz
 ```
 
 The running desktop app owns its `desktop` profile: install there through
@@ -100,7 +100,7 @@ npm pack --dry-run
 npm publish --access public
 
 # Verify
-npm view dsh-bingo-restart version dist.tarball engines.dsh
+npm view dsh-bingo-ren version dist.tarball engines.dsh
 ```
 
 If two-factor authentication is enabled, npm prompts for a one-time password.
@@ -129,11 +129,11 @@ Discover/plugin market follows the merge, not the npm publish.
 
 ## 7. After publishing
 
-- [ ] `npm view dsh-bingo-restart` shows the expected version and repository link
+- [ ] `npm view dsh-bingo-ren` shows the expected version and repository link
 - [ ] Fresh install into a self-test profile works
 - [ ] README "Release status" block is updated or removed
 - [ ] GitHub release `v0.1.1` created, with the screenshots and (optionally) a
-      version-free prebuilt tarball `dsh-bingo-restart.tgz`
+      version-free prebuilt tarball `dsh-bingo-ren.tgz`
 - [ ] `market/awesome-entry.yml` `tarball:` line uncommented only if that release
       asset exists
 - [ ] Issue tracker and discussion links work
@@ -141,8 +141,8 @@ Discover/plugin market follows the merge, not the npm publish.
 ## 8. If something is wrong
 
 - Within npm's unpublish window and with no dependent packages:
-  `npm unpublish dsh-bingo-restart@<version> --force`.
+  `npm unpublish dsh-bingo-ren@<version> --force`.
 - Otherwise deprecate the bad version:
-  `npm deprecate dsh-bingo-restart@<version> "reason"` and publish a patch.
+  `npm deprecate dsh-bingo-ren@<version> "reason"` and publish a patch.
 - Do not hand-edit the generated READMEs in the directory. Fix your own
   `data/plugins/<owner>__<repo>.yml` and open a follow-up PR.

@@ -1,4 +1,4 @@
-# dsh-bingo-restart — 设计规格（唯一事实来源）
+# dsh-bingo-ren — 设计规格（唯一事实来源）
 
 > 工作目录：`C:\\Users\\31461\\Desktop\\Bingo`
 > 目标：给 DeepSeek Harness（官方 Electron 桌面端）加一个常驻左下角的 **Bingo** 按钮：一键整应用重启；检测到新装插件时提示「检测到新插件，是否要 Bingo 一下」；轻量、好看、可发布到社区插件市场。
@@ -15,7 +15,7 @@
 
 ## 1. 产品定义
 
-- 名称：**Bingo**（包名 `dsh-bingo-restart`，npm 上 `dsh-bingo` 已被占用）。
+- 名称：**Bingo**（包名 `dsh-bingo-ren`，npm 上 `dsh-bingo` 已被占用）。
 - 位置：主窗口左下角，`position: fixed`，高 z-index，不遮挡关键操作；小屏/窄窗仍可用。
 - 交互：
   - 单击 Bingo 胶囊 → 打开面板（锚定在按钮上方）。
@@ -79,7 +79,7 @@
 
 ```
 Bingo/
-  package.json                 # C（包名 dsh-bingo-restart，零依赖）
+  package.json                 # C（包名 dsh-bingo-ren，零依赖）
   cordis.patch.yml             # C（bundle patch insert）
   README.md / README.zh.md     # C（发布门面）
   LICENSE                      # C（MIT）
@@ -98,7 +98,7 @@ Bingo/
 
 ## 5. 宿主插件契约（A 实现，B/C 依赖）
 
-入口 `lib/index.js`，ESM，`export const name = 'dsh-bingo'`、`export const inject = []`（对象级 inject 会延迟 apply，**禁止**）、`export function apply(ctx, config)`。
+入口 `lib/index.js`，ESM，`export const name = 'dsh-bingo-ren'`、`export const inject = []`（对象级 inject 会延迟 apply，**禁止**）、`export function apply(ctx, config)`。
 
 ### 5.1 apply 顺序（必须）
 1. 同步注册注入行订阅（`ctx.on('webserver/index-inject', table => ...)`），并立刻 push 行；行文本见 §5.4。
@@ -233,21 +233,21 @@ Helper（`lib/restart-helper.cjs`，CommonJS，在 Electron-as-node 中执行）
 
 ## 7. 打包 / 发布（C 实现）
 
-- `package.json`：name `dsh-bingo-restart`（已确认 npm 未占用；`dsh-bingo` 被占），version 0.1.0，type module，main `lib/index.js`，files `["lib","client","cordis.patch.yml","README.md","README.zh.md","LICENSE","icon.svg","assets"]`，零 dependencies，`engines: { node: ">=20", dsh: ">=0.2.0-rc.1" }`（market 用它显示兼容），keywords 至少含 `dsh-plugin`, `deepseek-harness`, `dsh`, `restart`, `bingo`, `plugin-manager`。
+- `package.json`：name `dsh-bingo-ren`（已确认 npm 未占用；`dsh-bingo` 被占），version 0.1.1，type module，main `lib/index.js`，files `["lib","client","cordis.patch.yml","README.md","README.zh.md","LICENSE","icon.svg","assets"]`，零 dependencies，`engines: { node: ">=20", dsh: ">=0.2.0-rc.1" }`（market 用它显示兼容），keywords 至少含 `dsh-plugin`, `deepseek-harness`, `dsh`, `restart`, `bingo`, `plugin-manager`。
 - `dsh.bundle.patch: "./cordis.patch.yml"`；**不要**设置 `dsh.client`（本插件无客户端模块）。
 - `cordis.patch.yml`：
 ```yaml
 - insert:
-    - id: dsh-bingo
-      name: dsh-bingo-restart
+    - id: dsh-bingo-ren
+      name: dsh-bingo-ren
       config:
         enabled: true
 ```
-- README（中英双语）：一句话价值、截图、安装（设置 → 插件 → 添加插件 → 输入 `dsh-bingo-restart`；或 `dsh plugin --profile <name> add dsh-bingo-restart`）、使用、首次安装需手动重启一次、快捷键、安全说明（重启会中断任务）、隐私（不联网）、兼容性、卸载、License。
+- README（中英双语）：一句话价值、截图、安装（设置 → 插件 → 添加插件 → 输入 `dsh-bingo-ren`；或 `dsh plugin --profile <name> add dsh-bingo-ren`）、使用、首次安装需手动重启一次、快捷键、安全说明（重启会中断任务）、隐私（不联网）、兼容性、卸载、License。
 - 市场：插件目录是 `awesome-dsh-plugin/awesome-dsh-plugin`（GitHub），上架方式是给该仓库提 PR 增加条目；dshmarket 每次打开实时读 `https://awesome-dsh-plugin.com/plugins.json`。C 需要抓取该仓库当前 README/条目格式，产出 `market/awesome-entry.yml` 或可粘贴条目 + `PUBLISH.md`（npm publish + PR 步骤 + 截图位置）。不得杜撰实际已上架。
 - `scripts/install.ps1`：本地开发安装到一个**非 desktop** 的自测 profile（示例 `dsh-plugin --profile bingo-selftest add link:<本目录>`），不碰运行中的 desktop profile；注释说明正式安装走插件设置。
 - `icon.svg`：单色/双色极简四角星 + 字母 B？要求 24–512 可缩放、深色背景可读；另导出 `assets/icon-512.png`（可用 Edge headless 渲染 SVG 截图，或 PowerShell/Inkscape 若有）。
-- 许可证 MIT，作者字段可写 `Bingo Contributors`，repository 可留占位（不得编造真实 URL；用 `https://github.com/your-name/dsh-bingo-restart` 并标注需替换）。
+- 许可证 MIT，作者字段可写 `Bingo Contributors`，repository 可留占位（不得编造真实 URL；用 `https://github.com/your-name/dsh-bingo-ren` 并标注需替换）。
 - 发布产物：`npm pack --dry-run` 通过；包内不含 test/preview/.research/SPEC（可用 .npmignore 或 files 白名单）。
 
 ## 8. 任务与写权限

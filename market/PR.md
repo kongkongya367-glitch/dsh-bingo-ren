@@ -6,7 +6,7 @@
 ## PR title
 
 ```
-Add dsh-bingo-restart
+Add dsh-bingo-ren
 ```
 
 ## PR body

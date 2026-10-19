@@ -51,6 +51,6 @@ Initial release, prepared but **not yet published**.
 
 ### Notes
 
-- npm package name: `dsh-bingo-restart` (`dsh-bingo` was already taken).
+- npm package name: `dsh-bingo-ren` (`dsh-bingo` was already taken).
 - Not yet published to npm; not yet listed in the community plugin directory.
 - Repository URLs in `package.json` are explicit placeholders.

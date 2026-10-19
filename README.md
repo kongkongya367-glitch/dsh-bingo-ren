@@ -1,5 +1,7 @@
 # Bingo — one-click restart for DeepSeek Harness
 
+Package: **dsh-bingo-ren** (display name **dsh-Bingo-ren**; npm requires lowercase).
+
 A quiet **Bingo** button in DeepSeek Harness (dsh). It starts in the bottom-left corner, can be dragged anywhere, and snaps to the nearest edge when you let go. Open it, and one click on **Bingo 一下** restarts the whole desktop app. When a plugin is installed while the app is running, Bingo notices and offers the restart for you.
 
 - **Whole-app restart** — kills the Electron shell and its host process, waits for the old instance to release the port, then starts the app again.
@@ -34,7 +36,7 @@ This one is a real Chromium (headless Edge) capture of preview/index.html made w
 
 1. Open **Settings → Plugins**.
 2. Choose **Add plugin**.
-3. Enter `dsh-bingo-restart` and confirm.
+3. Enter `dsh-bingo-ren` and confirm.
 4. **Restart DeepSeek Harness once by hand** (quit and reopen it).
 
 This is the only supported way to install into the running desktop app: the app owns its `desktop` profile and rejects package operations against it from a separate CLI process. Do not use `dsh plugin --profile desktop …`; install through the app instead.
@@ -46,7 +48,7 @@ Step 4 is required only for the first install: the button is served by the plugi
 Once the package is published, the CLI path is for profiles that are **not** the running desktop app, such as `dsh web` or a disposable self-test profile:
 
 ```sh
-dsh plugin --profile bingo-selftest add dsh-bingo-restart
+dsh plugin --profile bingo-selftest add dsh-bingo-ren
 ```
 
 The command needs the `dsh` CLI on your `PATH`. To install a local checkout during development:
@@ -77,7 +79,7 @@ Options: `-DshHome <dir>` (defaults to `$env:DSH_HOME` or `~/.dsh`), `-ProfileNa
 The script:
 
 - refuses to run while a DeepSeek Harness process is detected, unless `-Force` is given;
-- backs up `<profile>/package.json` to `package.json.bingo-backup`, adds the dependency and the bundle entry, and copies this checkout to `<profile>/node_modules/dsh-bingo-restart`;
+- backs up `<profile>/package.json` to `package.json.bingo-backup`, adds the dependency and the bundle entry, and copies this checkout to `<profile>/node_modules/dsh-bingo-ren`;
 - never runs `npm publish`, never kills or restarts the app, and touches only the named profile. `-Uninstall` restores the backup, removes the copied package, and keeps the backup for a repeat restore.
 
 This is an advanced local-evaluation path, not the release install. Once published, Settings → Plugins remains the supported path.
@@ -99,10 +101,10 @@ If you installed the plugin while the app was running, the first notification ma
 
 ## Configuration
 
-All options are optional and live under the `dsh-bingo` row in the profile's `cordis.patch.yml`:
+All options are optional and live under the `dsh-bingo-ren` row in the profile's `cordis.patch.yml`:
 
 ```yaml
-- id: dsh-bingo
+- id: dsh-bingo-ren
   config:
     enabled: true          # false = do not inject the button or routes
     pollMs: 4000           # profile poll interval, 1500–60000
@@ -139,7 +141,7 @@ Bingo makes **no outbound network requests**. It only talks to its own host rout
 ## Uninstall
 
 1. Open **Settings → Plugins**, find **Bingo**, and remove it. For the desktop profile this is the only supported path.
-2. For a non-desktop profile, the CLI works: `dsh plugin --profile <profile> remove dsh-bingo-restart`.
+2. For a non-desktop profile, the CLI works: `dsh plugin --profile <profile> remove dsh-bingo-ren`.
 3. If you installed with the advanced local script, quit the app and run `scripts/install-local-desktop.ps1 -Uninstall`.
 4. Restart the app once. The button and its routes disappear.
 
@@ -158,4 +160,4 @@ Optional cleanup: delete `~/.dsh/bingo/` (detection baseline, acknowledgements, 
 
 ---
 
-> **Release status (explicit placeholder):** Bingo is **not published yet**. The package is intended to publish as `dsh-bingo-restart` (`dsh-bingo` is already taken), but nothing has been published to npm and the project is **not listed** in the community plugin directory. The repository/homepage/bugs URLs in `package.json` use the `your-name` placeholder and must be replaced before release. See `PUBLISH.md` in the project repository.
+> **Release status (explicit placeholder):** Bingo is **not published yet**. The package is intended to publish as `dsh-bingo-ren` (`dsh-bingo` is already taken), but nothing has been published to npm and the project is **not listed** in the community plugin directory. The repository/homepage/bugs URLs in `package.json` use the `your-name` placeholder and must be replaced before release. See `PUBLISH.md` in the project repository.

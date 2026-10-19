@@ -1,5 +1,5 @@
 {
-  "name": "dsh-bingo-restart",
+  "name": "dsh-bingo-ren",
   "version": "0.1.1",
   "description": "Draggable Bingo button for DeepSeek Harness: snaps to the nearest edge, restarts the whole desktop app in one click, and prompts when a new plugin is installed. Zero runtime dependencies.",
   "keywords": [
@@ -38,11 +38,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-name/dsh-bingo-restart.git"
+    "url": "git+https://github.com/your-name/dsh-bingo-ren.git"
   },
-  "homepage": "https://github.com/your-name/dsh-bingo-restart#readme",
+  "homepage": "https://github.com/your-name/dsh-bingo-ren#readme",
   "bugs": {
-    "url": "https://github.com/your-name/dsh-bingo-restart/issues"
+    "url": "https://github.com/your-name/dsh-bingo-ren/issues"
   },
   "publishConfig": {
     "access": "public"

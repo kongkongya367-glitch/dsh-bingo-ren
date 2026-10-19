@@ -44,7 +44,7 @@ if ($forbidden -contains $ProfileName.Trim().ToLowerInvariant()) {
 $repoDir = Split-Path -Parent $PSScriptRoot
 $manifest = Join-Path $repoDir 'package.json'
 if (-not (Test-Path -LiteralPath $manifest)) {
-  throw "Cannot find package.json in '$repoDir'. Run this script from a checkout of dsh-bingo-restart."
+  throw "Cannot find package.json in '$repoDir'. Run this script from a checkout of dsh-bingo-ren."
 }
 
 $cli = $DshCli
@@ -83,4 +83,4 @@ Write-Host ""
 Write-Host "Installed into profile '$ProfileName'."
 Write-Host "Start a session that uses that profile, then confirm the Bingo button appears bottom-left."
 Write-Host "This profile is separate from the running desktop app; the desktop app is untouched."
-Write-Host "Remove it later with: dsh plugin --profile $ProfileName remove dsh-bingo-restart"
+Write-Host "Remove it later with: dsh plugin --profile $ProfileName remove dsh-bingo-ren"

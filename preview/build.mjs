@@ -9,8 +9,8 @@ const root = dirname(here);
 const SRC = join(here, 'src');
 const OUT = join(root, 'client');
 
-const JS_BANNER = '/*! dsh-bingo-restart | preview/src */\n';
-const CSS_BANNER = '/*! dsh-bingo-restart | preview/src */\n';
+const JS_BANNER = '/*! dsh-bingo-ren | preview/src */\n';
+const CSS_BANNER = '/*! dsh-bingo-ren | preview/src */\n';
 
 const PUNCT = [
   '>>>=', '===', '!==', '>>>', '**=', '&&=', '||=', '??=', '...', '=>', '==', '!=', '<=', '>=',

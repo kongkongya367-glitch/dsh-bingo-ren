@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Lead-owned integration harness for dsh-bingo-restart.
+ * Lead-owned integration harness for dsh-bingo-ren.
  * Mounts the real host plugin on a bare node:http server using a mock
  * Cordis webServer/ctx, then exercises routes, fence, injection and detection.
  *
@@ -128,7 +128,7 @@ try {
 }
 const plugin = mod.default && mod.default.apply ? mod.default : mod;
 assert.equal(typeof plugin.apply, 'function', 'plugin must export apply');
-if (typeof plugin.name === 'string') assert.equal(plugin.name, 'dsh-bingo');
+if (typeof plugin.name === 'string') assert.equal(plugin.name, 'dsh-bingo-ren');
 await plugin.apply(ctx, { pollMs: 1500, debug: true });
 
 const goodHeaders = { host: '127.0.0.1:' + String(port) };

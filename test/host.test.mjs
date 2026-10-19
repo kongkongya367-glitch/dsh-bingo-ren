@@ -330,10 +330,10 @@ function createRootContext(webServer, connection) {
 /* ------------------------------------------------------------------ */
 
 test('plugin contract: name, inject=[], apply and default export', () => {
-  assert.equal(pluginName, 'dsh-bingo');
+  assert.equal(pluginName, 'dsh-bingo-ren');
   assert.deepEqual(inject, []);
   assert.equal(typeof apply, 'function');
-  assert.equal(plugin.name, 'dsh-bingo');
+  assert.equal(plugin.name, 'dsh-bingo-ren');
   assert.deepEqual(plugin.inject, []);
   assert.equal(plugin.apply, apply);
 });

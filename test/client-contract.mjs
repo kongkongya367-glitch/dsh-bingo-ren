@@ -11,7 +11,7 @@ const preview = readFileSync(join(root, 'preview/index.html'), 'utf8');
 
 test('client js parses and is a strict guarded IIFE', () => {
   assert.doesNotThrow(() => new Function(clientJs));
-  assert.match(clientJs, /^\/\*! dsh-bingo-restart/);
+  assert.match(clientJs, /^\/\*! dsh-bingo-ren/);
   assert.match(clientJs, /'use strict'/);
   assert.match(clientJs, /__DSH_BINGO_LOADED__/);
 });
