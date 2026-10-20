@@ -1,33 +1,35 @@
-# 社区目录 PR 草稿
+# 社区目录 PR：已提交
 
-尚未提交。提交前核对目标仓库当前的贡献规则与 CI 要求。
+已向 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 提交 PR：
 
-## 标题
+**PR #8273** — https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8273
 
-添加 dsh-bingo-ren：DeepSeek Harness 一键重启与插件提醒
+- 标题：Add dsh-bingo-ren: draggable restart button and a plugin panel for the desktop app
+- 分支：`kongkongya367-glitch:add-dsh-bingo-ren`
+- 改动：仅新增 `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml`
+- 状态：open，mergeable，CI 检查中
 
-## 正文
+## 提交内容
 
-Bingo 为 DeepSeek Harness 添加一个可拖动的重启按钮。它支持靠近屏幕边缘自动吸附、记住位置，并在运行期间检测到新插件时提醒重启。
+`awesome-entry.yml` 就是提交的那个文件，与实际 PR 保持一致。
 
-- 官方 Electron 桌面端支持整应用重启。
-- 可选择稍后处理，同一组插件不重复提醒。
-- 支持快捷键和深浅色主题。
-- 零运行时依赖，不发送遥测，不向外发送数据。
-- Web 模式禁用重启并提供刷新页面。
-- 安装简介及默认文档使用中文，另附英文说明。
-- 按 profile 保存插件变更记录，支持试用复核与确认移除。
-- 验收清单读取宿主实际运行状态，信息不足时显示无法确认。
+## 核对过的规则
 
-仓库：https://github.com/kongkongya367-glitch/dsh-bingo-ren
+| 要求 | 状态 |
+|---|---|
+| `package.json` 声明 `dsh.bundle` + 根目录有 `cordis.patch.yml` | ✅ |
+| 有真实可用代码（非占位/纯 README） | ✅ 12 个宿主模块 + 128 项测试 |
+| 仓库创建满 1 天 | ✅ 27 小时 |
+| 有 `dsh-plugin` topic | ✅ |
+| 描述属实、无营销词 | ✅ 逐条对应代码行为 |
+| 描述含 `: ` 时加引号 | ✅ 中英均用双引号 |
 
-许可证：MIT
+## 合并前不宣称已收录
 
-仅新增 `data/plugins/kongkongya367-glitch__dsh-bingo-ren.yml`。截图声明位于插件仓库根目录的 `screenshots.json`。
+PR 合并后才算进入社区目录，在那之前 README 和其它材料都不应写「已被收录」。
 
-## 提交检查
+合并后可以加徽章：
 
-- 仓库包含可安装代码与 `dsh.bundle.patch`。
-- 仓库年龄与 topic 满足目标目录要求。
-- `tarball` 链接可下载且版本正确。
-- 截图路径有效，描述与实际行为一致。
+```markdown
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+```
