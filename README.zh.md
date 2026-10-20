@@ -1,6 +1,6 @@
 # Bingo
 
-**装完插件，Bingo 接班。**
+**装完插件，下一步也有人接住。**
 
 中文说明就是仓库默认的 [README.md](README.md)；英文说明见 [README.en.md](README.en.md)。
 

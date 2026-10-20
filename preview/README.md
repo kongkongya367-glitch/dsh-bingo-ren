@@ -10,6 +10,8 @@
 | `?scene=pending` | 新插件弹窗 |
 | `?scene=restarting` | 重启等待态 |
 | `?scene=web` | Web 降级状态 |
+| `?scene=overview` | 待办概览 |
+| `?scene=plugins` | 可搜索、筛选的插件列表 |
 | `?scene=history` | 插件变更记录 |
 | `?scene=trials` | 待决定的试用插件 |
 | `?scene=cleanup` | 隔离清理 |
@@ -28,7 +30,7 @@
 npm run build
 ```
 
-可读源码位于 `preview/src/`，产物位于 `client/`。客户端 JS/CSS 总大小预算为 70 KB（当前 66.2 KB）。
+可读源码位于 `preview/src/`，产物位于 `client/`。初始 JS/CSS 预算为 65 KB（当前约 62.8 KB）；`bingo-tools.js` 按需加载，单独预算 16 KB（当前约 14.4 KB）。普通查看不加载高级代码，也不请求残留扫描。
 
 ## 本地预览服务
 
@@ -51,7 +53,8 @@ node preview/capture-readme.mjs
 
 - `readme-hero.png`：从 `readme-cover.html` 渲染的产品概览封面，其中面板图片来自实际客户端。
 - `screenshot-new-plugin.png`：新插件提醒与试用入口。
-- `screenshot-history.png`、`screenshot-trials.png`、`screenshot-checks.png`：插件管家三个页签。
+- `screenshot-overview.png`、`screenshot-plugins.png`：待办概览与统一插件列表。
+- `screenshot-history.png`、`screenshot-trials.png`、`screenshot-checks.png`：变更记录与统一插件列表的筛选视图。
 - `screenshot-recovery.png`、`screenshot-cleanup.png`、`screenshot-health.png`：最小启动、隔离清理、启动趋势。
 - `screenshot-panel.png`、`screenshot-panel-dark.png`：新版重启面板。
 - `screenshot-button.png`、`screenshot-dragged.png`：按钮与真实鼠标拖动后的面板位置。

@@ -1,6 +1,6 @@
 # 发布 Bingo
 
-当前维护版本：`0.5.0`。npm 包为 [`dsh-bingo-ren`](https://www.npmjs.com/package/dsh-bingo-ren)，GitHub 附件见 [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)。源码版本不等于已发布版本，公开状态以注册表及 Release 为准。社区插件目录尚未提交。
+当前维护版本：`0.6.0`。npm 包为 [`dsh-bingo-ren`](https://www.npmjs.com/package/dsh-bingo-ren)，GitHub 附件见 [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)。源码版本不等于已发布版本，公开状态以注册表及 Release 为准。社区插件目录尚未提交。
 
 ## 发布前
 
@@ -23,7 +23,7 @@ Windows 可额外运行 `scripts/pack-check.ps1` 检查包内容。确保包内�
 npm whoami
 mkdir dist
 npm pack --pack-destination dist
-npm publish ./dist/dsh-bingo-ren-0.5.0.tgz --access public --auth-type=web
+npm publish ./dist/dsh-bingo-ren-0.6.0.tgz --access public --auth-type=web
 npm view dsh-bingo-ren version dist.tarball
 ```
 

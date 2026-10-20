@@ -107,3 +107,24 @@ test('unavailable or timing-out host inventory remains unknown', async () => {
   assert.equal(await readHostInventory({ listBundles() { throw new Error('offline'); } }), null);
   assert.equal(await readHostInventory({ listBundles: () => new Promise(() => {}) }, 5), null);
 });
+
+
+test('enablement changes survive checkpoints and old journals gain a baseline without fabricated changes', t => {
+  const f=fixture(t), old=f.open();old.observe([{name:'example',version:'1'}]);
+  const migrated=f.open();migrated.observe([{name:'example',version:'1',enabled:false}]);
+  assert.equal(migrated.view().history.length,0);assert.equal(migrated.view().checkpoints.length,0);
+  migrated.observe([{name:'example',version:'1',enabled:true}]);
+  assert.equal(migrated.view().history[0].kind,'enabled');
+  const cp=migrated.checkpointById(migrated.view().checkpoints[0].id);
+  assert.equal(cp.packages[0].enabled,false);
+  const reopened=f.open();assert.equal(reopened.checkpointById(cp.id).packages[0].enabled,false);
+  reopened.observe([{name:'example',version:'1',enabled:false}]);assert.equal(reopened.view().history[0].kind,'disabled');
+});
+
+test('full plugin list can expose failures outside the recent thirty-item acceptance list', () => {
+  const packages=Array.from({length:40},(_,i)=>({name:'plugin-'+i,version:'1'}));
+  const inventory={bundles:[{name:'plugin-39',error:{code:'failed'}}],plugins:[]};
+  assert.equal(buildAcceptance(packages,inventory).length,30);
+  const all=buildAcceptance(packages,inventory,1000);
+  assert.equal(all.length,40);assert.equal(all[39].state,'failed');
+});

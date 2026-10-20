@@ -53,3 +53,12 @@ test('planRollback treats a disabled bundle as a change', () => {
   assert.equal(plan.same, 0);
   assert.equal(isNoopPlan(plan), false);
 });
+
+
+test('rollback preserves unknown historical enablement and carries disabled state through reinstall', () => {
+  const same=planRollback([{name:'example',version:'1',enabled:false}],[{name:'example',version:'1'}]);
+  assert.equal(isNoopPlan(same),true,'old checkpoints cannot prove enablement');
+  assert.equal(planRollback([{name:'example',version:'2',enabled:false}],[{name:'example',version:'1'}]).install[0].enabled,false);
+  const update=planRollback([{name:'example',version:'2',enabled:true}],[{name:'example',version:'1',enabled:false}]);
+  assert.deepEqual(update.install,[{name:'example',version:'1',enabled:false}]);
+});

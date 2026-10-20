@@ -20,7 +20,7 @@ function client(fetchStatus, fetchImpl) {
     fetch: fetchImpl || (async () => ({ ok: true, json: fetchStatus })),
   });
   vm.runInContext(source.replace(entry,
-    '  window.testClient = { S:S, els:els, poll:pollOnce, enter:enterRestarting, error:handleRestartError, trialGroup:trialPendingGroup, handlePending:handlePending, setRoot:function(value){root=value;} }; return;\n' + entry), sandbox);
+    '  window.testClient = { S:S, els:els, summary:diagnosticSummary, poll:pollOnce, enter:enterRestarting, error:handleRestartError, trialGroup:trialPendingGroup, handlePending:handlePending, setRoot:function(value){root=value;} }; return;\n' + entry), sandbox);
   const c = window.testClient;
   const node = () => ({
     hidden: true, style: {}, dataset: {}, setAttribute() {}, removeAttribute() {}, focus() {},
@@ -106,4 +106,18 @@ test('marking a trial group never dismisses a newer pending plugin set', async (
   assert.equal(c.S.desk, false);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, '/bingo/trials');
+});
+
+
+test('diagnostic summary includes useful state but excludes paths, URLs and arbitrary host error text', () => {
+  const c=client(async()=>failed());
+  const report=c.summary({plugins:[
+    {name:'local-plugin',version:'link:C:/Users/private/project',state:'failed',error:'secret-token'},
+    {name:'remote-plugin',version:'https://user:password@example.com/plugin.tgz',state:'unknown'},
+    {name:'normal-plugin',version:'^1.2.3',state:'active'},
+    {name:'tag-plugin',version:'npm_secret_token_123456789',state:'active'},
+    {name:'invalid\nsecret',version:'1',state:'failed'}],history:[{name:'local-plugin',kind:'updated',to:'file:/private'}]},
+    {version:'0.6.0',profile:{dir:'C:/Users/private'},lastRestart:{log:'private-log'}});
+  assert.match(report,/local-plugin/);assert.match(report,/加载失败/);assert.match(report,/\^1\.2\.3/);
+  assert.doesNotMatch(report,/private|password|example\.com|secret|https?:|link:|file:/);
 });

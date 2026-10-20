@@ -135,7 +135,7 @@ async function callRoute(runtime, routePath, options) {
   const req = Readable.from(chunks);
   req.method = opts.method || 'GET';
   req.headers = opts.headers || { host: '127.0.0.1:4321' };
-  req.url = routePath;
+  req.url = opts.url || routePath;
   const res = createFakeResponse();
   route.handler(req, res);
   const result = await res.done;
@@ -1191,6 +1191,7 @@ test('rollback reinstalls packages the checkpoint had', async (t) => {
   assert.equal(response.status, 202, response.body);
   assert.deepEqual(installed.map(call => call.spec), ['restore@3.1.0']);
   assert.equal(installed[0].options.saveExact, true);
+  assert.equal(installed[0].options.enabled, false, 'a previously disabled package stays disabled after reinstall');
 });
 
 test('rollback is refused while the native manager is busy', async (t) => {
@@ -1468,4 +1469,16 @@ test('buildHelperConfig validates PIDs and carries testLaunch only when asked', 
 
 test('spawnRestartHelper rejects a missing config', () => {
   assert.throws(() => spawnRestartHelper({ cfg: null }), /missing restart helper config/);
+});
+
+
+test('light recovery view omits candidate scan and lazy UI asset uses the same fence', async t => {
+  const ctx=setupRuntime();cleanup(ctx,t);
+  const original=path.join(ctx.profileDir,'node_modules/.ignored/old');
+  fs.mkdirSync(original,{recursive:true});const time=new Date(Date.now()-3600000);fs.utimesSync(original,time,time);
+  assert.equal((await callRoute(ctx.runtime,'/bingo/recovery',{url:'/bingo/recovery?scan=0'})).json().leftovers.length,0);
+  assert.equal((await callRoute(ctx.runtime,'/bingo/recovery')).json().leftovers.length,1);
+  const clientDir=path.join(ctx.dir,'client');fs.mkdirSync(clientDir,{recursive:true});fs.writeFileSync(path.join(clientDir,'bingo-tools.js'),'/* lazy */');
+  const asset=await callRoute(ctx.runtime,'/bingo/tools.js');assert.equal(asset.status,200);assert.equal(asset.body,'/* lazy */');
+  assert.equal((await callRoute(ctx.runtime,'/bingo/tools.js',{headers:{host:'evil.example'}})).status,403);
 });

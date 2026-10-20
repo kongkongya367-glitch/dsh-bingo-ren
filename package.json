@@ -1,7 +1,7 @@
 {
   "name": "dsh-bingo-ren",
-  "version": "0.5.0",
-  "description": "DeepSeek Harness 插件善后管家：重启提醒、变更记录、临时试用、启动验收、离线最小启动与恢复、可恢复的残留隔离清理、启动体检趋势。零运行时依赖，无遥测。",
+  "version": "0.6.0",
+  "description": "DeepSeek Harness 插件善后管家：待办概览、插件搜索与运行检查、重启提醒、变更记录、临时试用、排查摘要与离线恢复。中文优先，零运行时依赖，无遥测。",
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",

@@ -403,9 +403,10 @@
     var params = new URLSearchParams(location.search);
     var scene = params.get('scene') || 'button';
     var theme = params.get('theme') === 'dark' ? 'dark' : 'light';
-    var pendingVisible = scene === 'pending' || scene === 'panel-pending';
+    var pendingVisible = scene === 'pending' || scene === 'panel-pending' || scene === 'overview';
 
-    window.__DSH_BINGO_VERSION__ = '0.5.0';
+    window.__DSH_BINGO_VERSION__ = '0.6.0';
+    window.__DSH_BINGO_TOOLS_URL__ = '../client/bingo-tools.js';
     window.__DSH_BINGO_POSITION__ = 'bottom-left';
     window.__DSH_BINGO_FORCE_THEME__ = theme;
     window.__DSH_BINGO_CLIENT_CSS__ = new URL('../client/bingo-client.css', location.href).href + '?v=preview';
@@ -421,7 +422,7 @@
       { id: 'change-2', kind: 'updated', name: 'dsh-plugin-market', from: '1.7.0', to: '1.8.0', at: new Date().toISOString(), source: 'startup' },
       { id: 'change-3', kind: 'removed', name: 'dsh-example-old', from: '0.1.0', at: new Date().toISOString(), source: 'running' }
     ];
-    var demoTrials = scene === 'trials' ? [{ name: packages[0].name, version: packages[0].version, id: 'trial-demo', createdAt: new Date().toISOString(), reviewDue: true, versionChanged: false, removable: true }] : [];
+    var demoTrials = scene === 'trials' || scene === 'overview' ? [{ name: packages[0].name, version: packages[0].version, id: 'trial-demo', createdAt: new Date().toISOString(), reviewDue: true, versionChanged: false, removable: true }] : [];
 
     var demoCheckpoints = [
       { id: 'cp-1', at: new Date(Date.now() - 8 * 60 * 1000).toISOString(), reason: 'change', count: 6 },
@@ -457,7 +458,7 @@
     };
 
     function activityPayload() {
-      return { ok: true, history: demoHistory, packages: packages, trials: demoTrials, canRemove: true, warning: null,
+      return { ok: true, history: demoHistory, packages: packages, trials: demoTrials, plugins: packages.map(function(p,i){return {name:p.name,version:p.version,installedVersion:p.version,state:['active','failed','unknown'][i%3]};}), canRemove: true, warning: null,
         acceptance: packages.map(function (p, i) { return { name: p.name, version: p.version, installedVersion: p.version, state: ['active', 'failed', 'unknown'][i % 3] }; })
       };
     }
@@ -466,7 +467,7 @@
       var web = scene === 'web';
       return {
         ok: true,
-        version: '0.5.0',
+        version: '0.6.0',
         bootId:'demo-boot',
         desktop: !web,
         canRestart: !web,
@@ -505,6 +506,7 @@
     window.fetch = function (input, init) {
       var url = typeof input === 'string' ? input : (input && input.url) || '';
       var method = (init && init.method) || (input && input.method) || 'GET';
+      window.__BINGO_DEMO_REQUESTS__ = window.__BINGO_DEMO_REQUESTS__ || []; window.__BINGO_DEMO_REQUESTS__.push({url:url,method:method});
       if(method==='POST')window.__BINGO_DEMO_CALLS__.push({url:url,body:JSON.parse(init.body||'{}')});
       if(url.indexOf('/bingo/ready')!==-1)return reply({ok:true});
       if(url.indexOf('/bingo/health')!==-1)return reply(demoHealth);
@@ -561,7 +563,7 @@
       ['restarting', '重启等待'],
       ['web', 'Web 降级']
       ,['history', '变更记录'], ['trials', '临时试用'], ['checks', '验收清单'],
-      ['recovery', '恢复'], ['recovery-safe', '最小启动中'], ['recovery-legacy', '旧版恢复'], ['cleanup','残留清理'], ['health','启动体检']
+      ['overview', '概览'], ['plugins', '插件'], ['recovery', '恢复'], ['recovery-safe', '最小启动中'], ['recovery-legacy', '旧版恢复'], ['cleanup','残留清理'], ['health','启动体检']
     ];
     var bar = document.getElementById('devbar');
     if (params.get('dev') === '1' && bar) {
@@ -583,7 +585,7 @@
     }
 
     window.addEventListener('dsh-bingo:ready', function () {
-      if (['history', 'trials', 'checks', 'recovery', 'recovery-safe', 'recovery-legacy', 'recovery-clean','cleanup','cleanup-isolated','health'].indexOf(scene) !== -1) {
+      if (['overview', 'plugins', 'history', 'trials', 'checks', 'recovery', 'recovery-safe', 'recovery-legacy', 'recovery-clean','cleanup','cleanup-isolated','health'].indexOf(scene) !== -1) {
         window.__DSH_BINGO__.openManager(scene.indexOf('recovery') === 0 ? 'recovery' : scene.indexOf('cleanup') === 0 ? 'cleanup' : scene);
         return;
       }

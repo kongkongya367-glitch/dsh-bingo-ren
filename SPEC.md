@@ -93,9 +93,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-deskto
 - 新路由 GET /bingo/health、POST /bingo/ready、POST /bingo/rescue；POST /bingo/cleanup 使用候选 IDs 和 isolate/restore/purge 动作。所有写入动作都需要 confirmed=true，并经过同一来源栅栏。
 - 测试包含临时目录、跨进程 helper、原配置字节恢复、配置冲突、符号链接、跨 profile 数据保护、清理恢复与启动口径；真实用户 profile 仅做只读冒烟。
 
-## 未发布的结构整理
+## 结构整理（0.6.0）
 
 - 旧 `/bingo/safe-mode` 进入路由已移除，新最小启动只走 rescue。已有 `safe-mode-<profile 哈希>.json` 仍可从恢复页显式确认恢复，对应 `POST /bingo/rescue` 的 `action: restore-legacy`；只重新启用记录中的插件，不创建新停用记录。
 - 旧状态的读取不产生 profile 写入。恢复与回滚共用操作互斥，部分失败保留剩余项；最小启动与旧记录恢复使用独立的界面确认状态。
 - 更早的、未标注 profile 的 `safe-mode.json` 不自动归属或删除。可核对其中插件名后，在原 profile 的宿主插件页手动重新启用，避免把其他 profile 的旧记录应用到当前 profile。
 - 删除不再参与运行的旧扫描/忙碌判定代码及其专属测试；真实 profile 冒烟检查只调用当前 quarantine 扫描器与 native PID guard。
+
+
+## 四入口工作流（0.6.0）
+
+- 概览聚合新增提醒、待决定试用、宿主报告失败与直接下一步。插件页统一试用与状态，支持名称搜索、异常／试用／最近变更／禁用筛选；完整状态范围最多 1000 项，原 30 项 acceptance 字段仍兼容旧客户端。
+- `GET /bingo/activity` 新增 plugins；等待宿主快照期间 profile 变化会拒绝返回错配结果。客户端按 bootId 使旧活动请求失效，并保留搜索焦点与光标位置。
+- 主客户端按需加载 `GET /bingo/tools.js`。高级工具失败不阻塞主要功能；恢复视图使用 `GET /bingo/recovery?scan=0`，选择隔离清理才请求扫描。所有资源继续使用同一来源栅栏。初始资源预算 65 KB，高级代码预算 16 KB。
+- 排查摘要只从允许的包名、版本、状态与变更字段组装；不读取聊天、配置、日志。自定义来源地址省略；复制前可预览，剪贴板失败时选中原文手动复制，不自动发送。
+- 活动清单与检查点保留已知 enabled 状态；旧记录缺失时先建立新基线，不补造启用／停用事件。回滚不把历史未知状态当作“启用”；重装时优先保留已知目标或当前选择。

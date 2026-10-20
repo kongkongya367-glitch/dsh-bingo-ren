@@ -77,17 +77,21 @@ try {
     if (call) { pending.delete(message.id); message.error ? call.reject(new Error(message.error.message)) : call.resolve(message.result); }
   };
   await send('Page.enable'); await send('Runtime.enable');
+  if (!process.argv.includes('--cover-only')) {
   await capture('button', 'screenshot-button.png', ['pill']);
   await capture('panel', 'screenshot-panel.png', ['panel','pill']);
   await capture('pending', 'screenshot-new-plugin.png', ['dialog']);
   await capture('panel&theme=dark', 'screenshot-panel-dark.png', ['panel','pill']);
   await capture('history', 'screenshot-history.png', ['desk']);
+  await capture('overview', 'screenshot-overview.png', ['desk']);
+  await capture('plugins', 'screenshot-plugins.png', ['desk']);
   await capture('trials', 'screenshot-trials.png', ['desk']);
   await capture('recovery', 'screenshot-recovery.png', ['desk']);
   await capture('cleanup-isolated', 'screenshot-cleanup.png', ['desk']);
   await capture('health', 'screenshot-health.png', ['desk']);
   await capture('checks&theme=dark', 'screenshot-checks.png', ['desk']);
   await capture('panel', 'screenshot-dragged.png', ['panel','pill'], true);
+  }
   await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 620, deviceScaleFactor: 2, mobile: false });
   await send('Page.navigate', { url: pathToFileURL(path.join(root, 'preview/readme-cover.html')).href });
   await until(() => evaluate('document.readyState === "complete" && Array.from(document.images).every(i=>i.complete && i.naturalWidth>0)'), 'cover images');

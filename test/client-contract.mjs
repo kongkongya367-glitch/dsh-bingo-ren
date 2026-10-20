@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const clientJs = readFileSync(join(root, 'client/bingo-client.js'), 'utf8');
+const toolsJs = readFileSync(join(root, 'client/bingo-tools.js'), 'utf8');
 const clientCss = readFileSync(join(root, 'client/bingo-client.css'), 'utf8');
 const preview = readFileSync(join(root, 'preview/index.html'), 'utf8');
 
@@ -42,7 +43,7 @@ test('client implements the host contract', () => {
     'msText',
     'triggerText'
   ]) {
-    assert.ok(clientJs.includes(marker) || clientCss.includes(marker), 'missing ' + marker);
+    assert.ok(clientJs.includes(marker) || toolsJs.includes(marker) || clientCss.includes(marker), 'missing ' + marker);
   }
 });
 
@@ -62,9 +63,11 @@ test('client avoids forbidden browser APIs and frameworks', () => {
   assert.doesNotMatch(clientJs, /\bReact\b/);
 });
 
-test('client assets stay below the 70 KB budget including plugin management and recovery', () => {
+test('initial UI stays below 65 KB and on-demand tools below 16 KB', () => {
   const total = statSync(join(root, 'client/bingo-client.js')).size + statSync(join(root, 'client/bingo-client.css')).size;
-  assert.ok(total < 70000, 'client js+css is ' + total + ' bytes');
+  assert.ok(total < 65000, 'client js+css is ' + total + ' bytes');
+  assert.ok(statSync(join(root,'client/bingo-tools.js')).size < 16000);
+  assert.doesNotThrow(()=>new Function(toolsJs));
 });
 
 test('preview mocks fetch and exposes every screenshot scene', () => {

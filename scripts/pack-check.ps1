@@ -56,6 +56,7 @@ try {
     'lib/health.js',
     'lib/restart-helper.cjs',
     'client/bingo-client.js',
+    'client/bingo-tools.js',
     'client/bingo-client.css',
     'cordis.patch.yml',
     'README.md',

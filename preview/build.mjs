@@ -201,6 +201,9 @@ mkdirSync(OUT, { recursive: true });
 const jsSrc = readFileSync(join(SRC, 'bingo-client.js'), 'utf8');
 const jsOut = JS_BANNER + minifyJs(shortenState(shortenClasses(jsSrc)));
 writeFileSync(join(OUT, 'bingo-client.js'), jsOut);
+const toolsSrc = readFileSync(join(SRC, 'bingo-tools.js'), 'utf8');
+const toolsOut = '/*! dsh-bingo-ren | preview/src/bingo-tools.js | on demand */\n' + minifyJs(shortenState(shortenClasses(toolsSrc)));
+writeFileSync(join(OUT, 'bingo-tools.js'), toolsOut);
 
 const cssSrc = readFileSync(join(SRC, 'bingo-client.css'), 'utf8');
 const cssOut = CSS_BANNER + minifyCss(shortenVars(shortenClasses(cssSrc)));
@@ -209,3 +212,4 @@ writeFileSync(join(OUT, 'bingo-client.css'), cssOut);
 console.log('client/bingo-client.js  ' + Buffer.byteLength(jsOut) + ' bytes');
 console.log('client/bingo-client.css ' + Buffer.byteLength(cssOut) + ' bytes');
 console.log('total ' + (Buffer.byteLength(jsOut) + Buffer.byteLength(cssOut)) + ' bytes');
+console.log('on-demand tools ' + Buffer.byteLength(toolsOut) + ' bytes');

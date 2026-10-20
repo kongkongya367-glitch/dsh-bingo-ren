@@ -44,6 +44,8 @@ const SCENES = [
   { scene: 'pending', expect: 'dialog' },
   { scene: 'restarting', expect: 'restartCard' },
   { scene: 'history', expect: 'desk' },
+  { scene: 'overview', expect: 'desk' },
+  { scene: 'plugins', expect: 'desk' },
   { scene: 'trials', expect: 'desk' },
   { scene: 'checks', expect: 'desk' },
   { scene: 'recovery', expect: 'desk' },

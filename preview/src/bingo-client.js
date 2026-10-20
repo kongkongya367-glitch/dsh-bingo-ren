@@ -6,7 +6,7 @@
 
   var VERSION = typeof window.__DSH_BINGO_VERSION__ === 'string' && window.__DSH_BINGO_VERSION__
     ? window.__DSH_BINGO_VERSION__
-    : '0.5.0';
+    : '0.6.0';
   var API = '/bingo';
   var CSS_URL = typeof window.__DSH_BINGO_CLIENT_CSS__ === 'string' && window.__DSH_BINGO_CLIENT_CSS__
     ? window.__DSH_BINGO_CLIENT_CSS__
@@ -52,7 +52,7 @@
     '<button class="bingo-btn bingo-btn--ghost" data-el="later" type="button">稍后</button>',
     '<button class="bingo-btn bingo-btn--ghost" data-el="refresh" type="button" hidden>刷新页面</button>',
     '</div>',
-    '<p class="bingo-note" data-el="note">会中断正在进行的任务，约 3 秒恢复</p>',
+    '<p class="bingo-note" data-el="note">重启会中断当前任务，请先保存工作</p>',
     '<p class="bingo-error" data-el="error" role="alert" hidden></p>',
     '<div class="bingo-meta" data-el="meta" data-failed="false" hidden>' + ICON_CLOCK + '<span data-el="metaText"></span></div>',
     '<button class="bingo-btn bingo-btn--ghost bingo-manage" data-el="manage" type="button">插件记录 · 试用 · 验收</button>',
@@ -77,7 +77,7 @@
     '<div class="bingo-layer bingo-layer--dialog" data-el="deskLayer" hidden>',
     '<section class="bingo-desk" data-el="desk" role="dialog" aria-modal="true" aria-labelledby="bingo-desk-title" tabindex="-1">',
     '<header class="bingo-head"><strong id="bingo-desk-title">Bingo 插件管家</strong><button class="bingo-iconbtn" data-el="deskClose" type="button" aria-label="关闭插件管家">' + ICON_CLOSE + '</button></header>',
-    '<nav class="bingo-tabs" aria-label="插件管理"><button data-el="historyTab" type="button">变更记录</button><button data-el="trialsTab" type="button">临时试用</button><button data-el="recoveryTab" type="button">恢复</button><button data-el="cleanupTab" type="button">残留清理</button><button data-el="healthTab" type="button">启动体检</button><button data-el="checksTab" type="button">验收清单</button></nav>',
+    '<nav class="bingo-tabs" aria-label="插件管理"><button data-el="overviewTab" type="button">概览</button><button data-el="pluginsTab" type="button">插件</button><button data-el="historyTab" type="button">变更记录</button><button data-el="toolsTab" type="button">恢复与工具</button></nav>',
     '<div class="bingo-desk-toolbar"><span data-el="deskMessage" role="status" aria-live="polite"></span><button class="bingo-btn bingo-btn--ghost" data-el="deskRefresh" type="button">刷新</button></div>',
     '<div class="bingo-desk-content" data-el="deskContent"></div>',
     '</section></div>',
@@ -115,10 +115,17 @@
     drag: null,
     suppressClick: false,
     desk: false,
-    deskTab: 'history',
+    deskTab: 'overview',
+    tool: 'recovery',
+    pluginFilter: 'all',
+    pluginQuery: '',
+    diagnostic: false,
+    restartSuggested: false,
     activity: null,
     activityBusy: false,
     activityLoading: false,
+    activityRequest: 0,
+    activityError: '',
     removeConfirm: '',
     reviewSeen: Object.create(null),
     recovery: null,
@@ -443,6 +450,12 @@
     request(API + '/status').then(function (data) {
       if (!data || data.ok === false) throw new Error('Bad status');
       S.failures = 0;
+      var changedBoot = S.status && S.status.bootId && data.bootId && S.status.bootId !== data.bootId;
+      var changedPending = (S.pending && S.pending.signature) !== (data.pending && data.pending.signature);
+      if (changedBoot) {
+        S.activityRequest += 1; S.activityLoading = false; S.activity = null; S.recovery = null; S.health = null; S.timeline = null;
+        S.restartSuggested = false; S.diagnostic = false; S.cleanupPick = Object.create(null); resetConfirmations();
+      }
       S.status = data;
       S.pending = data.pending || null;
       if (typeof data.pollMs === 'number') S.pollMs = clamp(data.pollMs, 1500, 60000);
@@ -452,6 +465,8 @@
       if (data.restarting) enterRestarting(true);
       else if (S.restarting && restartCycle === S.restartCycle) leaveRestarting();
       handlePending();
+      if (S.desk && changedBoot) { if(S.deskTab === 'tools')loadTools();else loadActivity(); }
+      if (S.desk && S.deskTab === 'overview' && changedPending) renderDesk();
       var review = data.activity;
       if (review && review.reviewCount > 0 && review.reviewSignature && !S.reviewSeen[review.reviewSignature] && !S.restarting && !S.dialog && !S.panel && !S.desk) {
         S.reviewSeen[review.reviewSignature] = true;
@@ -530,10 +545,10 @@
 
   function noteText() {
     var status = S.status;
-    if (!status) return '会中断正在进行的任务，约 3 秒恢复';
+    if (!status) return '重启会中断当前任务，请先保存工作';
     if (!status.desktop) return 'Web 运行方式不支持整应用重启，可刷新页面';
     if (status.canRestart === false) return '重启已被禁用，可在插件配置中开启';
-    return '会中断正在进行的任务，约 3 秒恢复';
+    return '重启会中断当前任务，请先保存工作';
   }
 
   function formatTime(iso) {
@@ -609,7 +624,7 @@
     els.note.textContent = noteText();
     if (els.manage) {
       var reviews = status && status.activity && status.activity.reviewCount || 0;
-      els.manage.textContent = reviews ? '插件管家 · ' + reviews + ' 个试用待决定' : '插件记录 · 试用 · 验收';
+      els.manage.textContent = reviews ? '插件管家 · ' + reviews + ' 个试用待决定' : '打开插件管家';
     }
     if (els.tryGroup) els.tryGroup.disabled = S.busy || restarting;
 
@@ -862,14 +877,17 @@
   function renderDesk() {
     if (!S.desk || !els.deskContent) return;
     var content = els.deskContent;
+    var focused = shadow && shadow.activeElement;
+    var selection = focused && focused.type === 'search' ? { start:focused.selectionStart, end:focused.selectionEnd } : null;
+    content.setAttribute('data-view', S.deskTab);
     while (content.firstChild) content.removeChild(content.firstChild);
-    ['history', 'trials', 'recovery', 'cleanup', 'health', 'checks'].forEach(function (tab) {
+    ['overview', 'plugins', 'history', 'tools'].forEach(function (tab) {
       els[tab + 'Tab'].setAttribute('aria-pressed', S.deskTab === tab ? 'true' : 'false');
     });
     els.deskClose.disabled = S.activityBusy;
     els.deskRefresh.disabled = S.activityBusy || S.activityLoading;
     var data = S.activity;
-    if (!data) { content.appendChild(el('p', 'bingo-muted', '正在读取插件信息…')); return; }
+    if (!data && S.deskTab !== 'tools') { content.appendChild(el('p', 'bingo-muted', S.activityError || '正在读取插件信息…')); if(S.activityError)content.appendChild(deskButton('重新读取', loadActivity)); return; }
     var note = function (text) { content.appendChild(el('p', 'bingo-muted', text)); };
     var card = function (title, detail) {
       var row = el('article', 'bingo-record');
@@ -880,7 +898,7 @@
     };
     if (S.deskTab === 'history') {
       note('记录启用 Bingo 后观察到的变化，最近显示 100 条。版本以插件清单声明为准；不记录聊天内容。');
-      var kinds = { added: '新增', updated: '版本变更', removed: '移除', 'trial-started': '开始试用', 'trial-kept': '保留试用插件', 'trial-removed': '移除试用插件' };
+      var kinds = { added: '新增', updated: '版本变更', removed: '移除', enabled: '启用', disabled: '停用', 'trial-started': '开始试用', 'trial-kept': '保留试用插件', 'trial-removed': '移除试用插件' };
       if (!data.history.length) note('还没有变更记录。下次安装、更新或移除插件后会出现在这里。');
       data.history.forEach(function (item) {
         var detail = formatTime(item.at) + (item.source === 'startup' ? ' · 启动时发现' : '');
@@ -888,347 +906,187 @@
         else if (item.to || item.from) detail += ' · ' + (item.to || item.from);
         card((kinds[item.kind] || '变更') + ' · ' + item.name, detail);
       });
-    } else if (S.deskTab === 'trials') {
-      note('安装后标记试用，下次启动提醒你决定。试用不隔离插件权限，也不会自动卸载；“保留”只结束提醒。');
-      var controls = el('div', 'bingo-trial-controls');
-      var select = el('select', 'bingo-select');
-      select.setAttribute('aria-label', '选择要试用的已安装插件');
-      data.packages.forEach(function (pkg) {
-        var option = el('option', '', pkg.name);
-        option.value = pkg.name;
-        select.appendChild(option);
+    } else if (S.deskTab === 'plugins') {
+      renderPlugins(content, card, note, selection);
+    } else if (S.deskTab === 'tools') {
+      var picker = el('select', 'bingo-select');
+      picker.setAttribute('aria-label', '选择恢复与工具');
+      [['recovery','恢复配置与离线急救'],['cleanup','残留隔离与恢复'],['health','启动趋势']].forEach(function (item) {
+        var option = el('option', '', item[1]); option.value = item[0]; picker.appendChild(option);
       });
-      select.disabled = S.activityBusy;
-      controls.appendChild(select);
-      controls.appendChild(deskButton('标记试用', function () {
-        var pkg = data.packages.filter(function (p) { return p.name === select.value; })[0];
-        if (pkg) performTrial('start', pkg);
-      }, !data.packages.length));
-      content.appendChild(controls);
-      if (!data.trials.length) note('暂无试用插件。也可以在新插件提醒中选择“本次新增设为试用”。');
-      data.trials.forEach(function (trial) {
-        var row = card(trial.name, (trial.reviewDue ? '待决定' : '试用中') + ' · ' + (trial.version || '未声明版本') + ' · ' + formatTime(trial.createdAt));
-        var actions = el('div', 'bingo-record-actions');
-        actions.appendChild(deskButton('保留', function () { performTrial('keep', trial); }));
-        actions.appendChild(deskButton('下次启动再问', function () { performTrial('snooze', trial); }, !trial.reviewDue));
-        if (trial.versionChanged) {
-          row.appendChild(el('p', 'bingo-muted', '安装声明已变化。重新标记后才能移除，避免误删替换后的版本。'));
-          actions.appendChild(deskButton('重新标记', function () {
-            var pkg = data.packages.filter(function (p) { return p.name === trial.name; })[0];
-            if (pkg) performTrial('start', pkg);
-          }));
-        }
-        actions.appendChild(deskButton(S.removeConfirm === trial.id ? '确认移除' : '移除', function () {
-          if (S.removeConfirm !== trial.id) {
-            S.removeConfirm = trial.id;
-            els.deskMessage.textContent = '确认移除 ' + trial.name + '？由宿主管理器执行，相关功能将停止，其他会话也会受影响。';
-            renderDesk();
-          } else performTrial('remove', trial);
-        }, !trial.removable || !data.canRemove));
-        if (S.removeConfirm === trial.id) actions.appendChild(deskButton('取消', function () { S.removeConfirm = ''; renderDesk(); }));
-        row.appendChild(actions);
-        if (!trial.removable && !trial.versionChanged) row.appendChild(el('p', 'bingo-muted', '当前不能在 Bingo 中移除，请在 Harness 插件页查看。'));
-      });
-    } else if (S.deskTab === 'recovery' || S.deskTab === 'cleanup') {
-
-      var rec = S.recovery;
-      if (!rec) { content.appendChild(el('p', 'bingo-muted', '正在读取恢复信息…')); return; }
-      if (rec.warning) note(rec.warning);
-      if (S.deskTab === 'recovery') {
-      note('最小启动先备份，再在旧进程退出后切换配置。回滚仍按原有检查点执行。');
-      var minimal = rec.rescue;
-      if (minimal && (minimal.available || minimal.active)) {
-        var statusText = minimal.active ? (minimal.phase === 'active' ? '最小启动已应用' : '最小启动方案尚未完成') : '界面打不开时，也能救援';
-        var rescueRow = card(statusText, '只保留官方基础包与 Bingo，临时停用 profile 自定义补丁；原配置会完整备份。全局和命令行覆盖层不在此范围。');
-        var rescueActions = el('div', 'bingo-record-actions');
-        rescueActions.appendChild(deskButton(S.safeConfirm ? '确认并重启' : (minimal.active ? '恢复原配置并重启' : '最小启动并重启'), function () {
-          if (!S.safeConfirm) { S.safeConfirm = true; els.deskMessage.textContent = '会中断当前任务。先备份配置，旧进程完全退出后才修改；恢复遇到新改动会停止。确认继续？'; renderDesk(); return; }
-          performRescue(minimal.active ? 'restore' : 'enter');
-        }, !minimal.available || (rec.busy && rec.busy.busy)));
-        if (S.safeConfirm) rescueActions.appendChild(deskButton('取消', function () { S.safeConfirm = false; S.legacyConfirm = false; renderDesk(); }));
-        rescueRow.appendChild(rescueActions);
-        if (minimal.offline && (minimal.offline.launcher || minimal.offline.cli)) rescueRow.appendChild(el('p', 'bingo-muted', '离线入口（关闭 Harness 后打开）：' + (minimal.offline.launcher || minimal.offline.cli)));
-        if (minimal.backupDir) rescueRow.appendChild(el('p', 'bingo-muted', '本机备份：' + minimal.backupDir));
-      } else if (!rec.safeMode) note('当前运行方式不能从这里重启；离线急救工具可在完全退出应用后使用。');
-      if (rec.safeMode) {
-        var safeRow = card('旧版社区插件停用记录', '可通过宿主恢复之前停用的插件；该方式依赖可打开的应用界面。');
-        safeRow.appendChild(deskButton(S.legacyConfirm ? '确认恢复' : '恢复之前的选择', function () {
-          if (!S.legacyConfirm) { S.legacyConfirm = true; renderDesk(); return; }
-          restoreLegacyPlugins();
-        }));
-      }
-      note('停止与拉起记录（来自 helper 日志，不代表界面已就绪）：');
-      var tl = S.timeline;
-      if (!tl) note('正在读取重启记录…');
-      else if (!tl.items || !tl.items.length) note('还没有重启记录。点「Bingo 一下」之后这里会出现耗时。');
-      else {
-        if (tl.stats && tl.stats.count) note('已记录 ' + tl.stats.count + ' 次重启，平均 ' + msText(tl.stats.avgMs) + '，最长 ' + msText(tl.stats.maxMs) + '。');
-        tl.items.forEach(function (item) {
-          var row = card((item.ok === false ? '重启失败' : item.ok === true ? '替代进程已拉起' : '结果未确认') + ' · ' + formatTime(item.requestedAt),
-            msText(item.totalMs) + ' 总计 · 停止 ' + msText(item.phases.stopMs) + ' · 拉起 ' + msText(item.phases.launchMs) + ' · 触发：' + triggerText(item.trigger));
-          if (item.plugins && item.plugins.length) {
-            var list = el('ul', 'bingo-pkgs bingo-pkgs--inline');
-            item.plugins.forEach(function (p) {
-              list.appendChild(el('li', '', kindText(p.kind) + ' ' + p.name + (p.to ? ' ' + p.to : '')));
-            });
-            row.appendChild(list);
-          } else {
-            row.appendChild(el('p', 'bingo-muted', '本次重启前后没有记录到插件变化。'));
-          }
-        });
-      }
-      note('最近可回滚的时间点：');
-      if (!rec.checkpoints || !rec.checkpoints.length) note('还没有可回滚的记录。安装或更新插件后会自动留下一个时间点。');
-      (rec.checkpoints || []).forEach(function (cp) {
-        var row = card('回滚到 ' + formatTime(cp.at), cp.count + ' 个插件 · 触发于' + reasonText(cp.reason));
-        var actions = el('div', 'bingo-record-actions');
-        actions.appendChild(deskButton(S.rollbackConfirm === cp.id ? '确认回滚' : '回滚到这里', function () {
-          if (S.rollbackConfirm !== cp.id) {
-            S.rollbackConfirm = cp.id;
-            els.deskMessage.textContent = '回滚会按这份清单增删插件，插件数据保留；完成后需要重启。';
-            renderDesk();
-            return;
-          }
-          performRollback(cp.id);
-        }, rec.busy && rec.busy.busy));
-        if (S.rollbackConfirm === cp.id) actions.appendChild(deskButton('取消', function () { S.rollbackConfirm = ''; renderDesk(); }));
-        row.appendChild(actions);
-      });
-      }
-      if (S.deskTab === 'cleanup') {
-      note('清理候选（至少静置 10 分钟，仍需核对用途）：');
-      note('先移入隔离区，可恢复；隔离不释放磁盘空间。只有再次确认永久删除后才释放空间。数据目录只按精确包名和移除记录匹配，无法识别的目录不自动清理。');
-      if (!rec.leftovers || !rec.leftovers.length) note('没有发现残留文件。');
-      (rec.leftovers || []).forEach(function (item) {
-        var size = typeof item.bytes === 'number' ? (item.approximate ? '至少 ' : '') + Math.round(item.bytes / 1024) + ' KB' : '大小未估算';
-        var row = card(leftoverLabel(item.kind) + ' · ' + item.name, size + ' · ' + item.path);
-        var box = document.createElement('input');
-        box.type = 'checkbox';
-        box.checked = !!S.cleanupPick[item.id];
-        box.setAttribute('aria-label', '选择隔离 ' + item.name);
-        box.addEventListener('change', function () {
-          S.cleanupPick[item.id] = box.checked;
-        });
-        row.insertBefore(box, row.firstChild);
-        content.appendChild(row);
-      });
-      if (rec.leftovers && rec.leftovers.length) {
-        var actions2 = el('div', 'bingo-record-actions');
-        actions2.appendChild(deskButton(S.cleanupConfirm ? '确认移入隔离区' : '隔离所选', function () {
-          var paths = Object.keys(S.cleanupPick).filter(function (p) { return S.cleanupPick[p]; });
-          if (!paths.length) { els.deskMessage.textContent = '请先勾选要隔离的候选项。'; return; }
-          if (!S.cleanupConfirm) {
-            S.cleanupConfirm = true;
-            els.deskMessage.textContent = '将移动 ' + paths.length + ' 个候选目录到同卷隔离区，可恢复；请核对是否仍有用途。';
-            renderDesk();
-            return;
-          }
-          performCleanup(paths);
-        }, rec.busy && rec.busy.busy));
-        if (S.cleanupConfirm) actions2.appendChild(deskButton('取消', function () { S.cleanupConfirm = false; renderDesk(); }));
-        content.appendChild(actions2);
-      }
-      (rec.quarantine || []).forEach(function (item) {
-        var row = card('已隔离 · ' + item.name, formatTime(item.at) + ' · ' + (item.originalPath || '路径需要人工核对'));
-        if(item.status==='purging')row.appendChild(el('p','bingo-muted','永久删除未完成，部分内容可能已删除；请继续删除或人工核对。'));
-        var actions = el('div', 'bingo-record-actions');
-        actions.appendChild(deskButton('恢复到原位置', function () { performQuarantine('restore', item.id); }, item.status !== 'isolated'));
-        actions.appendChild(deskButton(S.quarantineConfirm === item.id ? '确认永久删除' : '永久删除', function () {
-          if (S.quarantineConfirm !== item.id) { S.quarantineConfirm = item.id; els.deskMessage.textContent = '永久删除后不可恢复；请确认 ' + item.name + ' 不再需要。'; renderDesk(); return; }
-          performQuarantine('purge', item.id);
-        }, item.status !== 'isolated' && item.status !== 'purging'));
-        row.appendChild(actions);
-      });
-      }
-    } else if (S.deskTab === 'health') {
-      var health = S.health;
-      if (!health) { note('正在读取启动体检…'); return; }
-      note(health.note);
-      var ready = (health.items || []).filter(function (r) { return typeof r.hostToUiMs === 'number' && !r.lateObservation; }).slice(0, 12).reverse();
-      if (health.stats && health.stats.count) note('普通启动已测 ' + health.stats.count + ' 次，平均 ' + msText(health.stats.averageMs) + '。最小启动与观察点较晚的样本不混入普通均值。');
-      if (ready.length) {
-        var graph = el('div', 'bingo-health-chart'); graph.setAttribute('role', 'img'); graph.setAttribute('aria-label', '最近启动的宿主到 Bingo 界面就绪耗时');
-        var max = Math.max.apply(null, ready.map(function (r) { return r.hostToUiMs; }).concat([1]));
-        ready.forEach(function (r) { var bar = el('div', 'bingo-health-bar', msText(r.hostToUiMs)); bar.style.height = Math.max(20, 95 * r.hostToUiMs / max) + 'px'; bar.title = formatTime(r.startedAt) + (r.minimal ? ' · 最小启动' : ''); graph.appendChild(bar); });
-        content.appendChild(graph);
-      }
-      if (!health.items.length) note('从此版本启用后开始记录，不会补造过去的启动数据。');
-      health.items.forEach(function (r) {
-        var row = card(formatTime(r.startedAt) + (r.minimal ? ' · 最小启动' : r.lateObservation ? ' · 观察点较晚' : ' · 普通启动'), '界面首次就绪 ' + msText(r.hostToUiMs) + ' · 清单包 ' + r.packageCount + ' · 就绪时运行条目 ' + (r.activeCount === null ? '未知' : r.activeCount) + ' · 失败条目 ' + (r.failedCount === null ? '未知' : r.failedCount) + ' · 异常包 ' + (typeof r.failedBundleCount === 'number' ? r.failedBundleCount : '未知'));
-        if (r.lateObservation) row.appendChild(el('p', 'bingo-muted', '热更新接入或观察点超过 2 分钟，单独展示，不计入普通启动均值。'));
-        if (!r.readyAt) row.appendChild(el('p', 'bingo-muted', '未确认界面就绪，不能据此断言启动失败。'));
-        if (r.changes && r.changes.length) row.appendChild(el('p', 'bingo-muted', '与上次启动相比：' + r.changes.map(function (c) { return kindText(c.kind) + ' ' + c.name; }).join('、')));
-      });
+      picker.value = S.tool; picker.disabled = S.activityBusy;
+      picker.addEventListener('change', function () { S.tool = picker.value; resetConfirmations(); renderDesk(); loadTools(); });
+      content.appendChild(picker);
+      if (tools) tools.render(content, card, note);
+      else { note(S.toolsError || '正在打开恢复工具…'); if(S.toolsError)content.appendChild(deskButton('重试加载', loadTools)); }
     } else {
-      note('宿主连接正常。检查最近变更的插件，最多 30 个；无变更时显示当前插件。');
-      note('“运行中”表示宿主条目已启动，不代表插件业务功能或运行代码版本已独立测试。仅有安装文件时不会判定通过。');
-      var states = { active: '运行中', failed: '加载失败', disabled: '已禁用', pending: '等待启动', unknown: '无法确认' };
-      if (!data.acceptance.length) note('当前没有可验收的插件。');
-      data.acceptance.forEach(function (item) {
-        var row = card(item.name, '安装版本：' + (item.installedVersion || '未知') + ' · 声明：' + (item.version || '未声明'));
-        var badge = el('span', 'bingo-check-state', states[item.state] || '无法确认');
-        badge.setAttribute('data-state', item.state);
-        row.appendChild(badge);
-      });
+      renderOverview(content, card, note);
     }
   }
 
-
-  function reasonText(reason) {
-    var map = { change: '插件变化', manual: '手动记录', 'safe-mode': '安全模式', 'before-rollback': '回滚前' };
-    return map[reason] || reason || '插件变化';
-  }
-
-  function leftoverLabel(kind) {
-    var map = { ignored: '被移到 .ignored 的旧副本', tmp: '安装中断的临时目录', orphan: '清单里没有的包目录', data: '已卸载插件的数据目录' };
-    return map[kind] || '残留';
-  }
-
-  function msText(value) {
-    if (typeof value !== 'number' || value < 0) return '未知';
-    if (value < 1000) return value + ' ms';
-    return (value / 1000).toFixed(1) + ' s';
-  }
-
-  function triggerText(trigger) {
-    var map = { button: '手动点击', 'new-plugin': '新插件提醒', shortcut: '快捷键' };
-    return map[trigger] || trigger || '未知';
-  }
-
-  function kindText(kind) {
-    var map = { added: '新增', updated: '升级', removed: '移除' };
-    return map[kind] || '变更';
-  }
-  function loadRecovery() {
-    if (S.recoveryLoading) return Promise.resolve();
-    S.recoveryLoading = true;
-    loadTimeline();
-    loadHealth();
-    return request(API + '/recovery', { timeout: 20000 }).then(function (data) {
-      if (!data || data.ok === false) throw new Error('Bad recovery');
-      S.recovery = data;
-      els.deskMessage.textContent = data.warning || '记录仅保存在本机';
-    }).catch(function (error) {
-      els.deskMessage.textContent = activityError(error);
-    }).then(function () {
-      S.recoveryLoading = false;
-      renderDesk();
+  var STATE_LABELS = { active:'运行中', failed:'加载失败', disabled:'已禁用', pending:'等待启动', unknown:'无法确认' };
+  function pluginItems(data) {
+    if (Array.isArray(data.plugins)) return data.plugins;
+    return (data.packages || []).map(function (pkg) {
+      return (data.acceptance || []).filter(function (item) { return item.name === pkg.name; })[0] || {name:pkg.name,version:pkg.version,state:'unknown'};
     });
   }
 
-  function loadTimeline() {
-    return request(API + '/timeline', { timeout: 15000 }).then(function (data) {
-      if (!data || data.ok === false) throw new Error('Bad timeline');
-      S.timeline = data;
-      if (S.deskTab === 'recovery' && S.desk) renderDesk();
-    }).catch(function () {
-      S.timeline = { ok: true, items: [], stats: { count: 0, avgMs: null, maxMs: null } };
-    });
+  function resetConfirmations() {
+    S.removeConfirm = ''; S.rollbackConfirm = ''; S.safeConfirm = false;
+    S.legacyConfirm = false; S.cleanupConfirm = false; S.quarantineConfirm = '';
   }
 
-  function loadHealth() {
-    return request(API + '/health', { timeout: 15000 }).then(function (data) { S.health = data; if (S.desk && S.deskTab === 'health') renderDesk(); }).catch(function () { S.health = null; });
+  function showPlugins(filter) {
+    S.pluginFilter = filter || 'all'; S.pluginQuery = ''; openDesk('plugins');
   }
-  function performRescue(action) {
-    if (S.activityBusy) return;
-    S.activityBusy = true; renderDesk();
-    request(API + '/rescue', { method: 'POST', body: JSON.stringify({action:action,confirmed:true}), timeout:15000 }).then(function () {
-      S.activityBusy = false; S.safeConfirm = false; S.legacyConfirm = false; enterRestarting();
-    }).catch(function (error) { S.activityBusy = false; els.deskMessage.textContent = activityError(error); renderDesk(); });
+
+  function renderOverview(content, card, note) {
+    var data = S.activity, items = pluginItems(data);
+    var failed = items.filter(function (p) { return p.state === 'failed'; });
+    var due = (data.trials || []).filter(function (t) { return t.reviewDue; });
+    var pending = S.pending && (S.pending.packages || []);
+    var restart = (pending && pending.length) || S.restartSuggested;
+    card(restart || failed.length || due.length ? '先处理这几件事' : '目前没有待办', '装完、重启、检查、决定去留，在这里接起来。');
+    if (failed.length) {
+      var problem = card(failed.length + ' 个插件加载异常', failed.map(function (p) { return p.name; }).slice(0, 4).join('、'));
+      var actions = el('div', 'bingo-record-actions');
+      actions.appendChild(deskButton('查看异常插件', function () { showPlugins('failed'); }));
+      actions.appendChild(deskButton('恢复与急救', function () { openDesk('recovery'); })); problem.appendChild(actions);
+    }
+    var quick = card(restart ? '有插件变更待重启处理' : '随时 Bingo 一下', restart ? (pending && pending.length ? pending.map(function (p) { return p.name; }).join('、') : '宿主提示上次操作需要重启。') : '需要时，重启整个桌面应用。');
+    quick.appendChild(el('p', 'bingo-muted', '重启会中断当前任务，请先保存工作。'));
+    quick.appendChild(deskButton('保存后重启 Harness', function () { triggerRestart('button'); }, !S.status || !S.status.canRestart || S.busy));
+    if (!S.status || !S.status.canRestart) note('当前运行方式不支持整应用重启。');
+    if (due.length) {
+      var review = card(due.length + ' 个试用待决定', '保留、下次再问，或确认移除。');
+      review.appendChild(deskButton('处理试用', function () { showPlugins('trial'); }));
+    }
+    var recent = card('最近动过什么', data.history.length ? data.history.slice(0, 3).map(function (h) { return changeLabel(h.kind) + ' ' + h.name; }).join(' · ') : '从启用 Bingo 后开始记录。');
+    recent.appendChild(deskButton('查看变更记录', function () { openDesk('history'); }));
+    var report = card('遇到问题，带着摘要求助', '摘要只包含包名、版本、运行状态和近期变更；自定义来源的地址与本机路径会省略。生成后可以先核对。');
+    if (!S.diagnostic) report.appendChild(deskButton('生成排查摘要', function () { S.diagnostic = true; renderDesk(); }));
+    else {
+      var area = el('textarea', 'bingo-report'); area.readOnly = true; area.rows = 9;
+      area.setAttribute('aria-label', '排查摘要，分享前可核对'); area.value = diagnosticSummary(data, S.status);
+      report.appendChild(area);
+      report.appendChild(deskButton('复制摘要', function () {
+        function selectText() { area.focus(); area.select(); els.deskMessage.textContent = '已选中摘要，请按 Ctrl+C（Mac：⌘C）复制。'; }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(area.value).then(function () { els.deskMessage.textContent = '摘要已复制，可粘贴给维护者。'; }).catch(selectText);
+        else selectText();
+      }));
+    }
   }
-  function performQuarantine(action, id) {
-    if (S.activityBusy) return;
-    S.activityBusy = true; renderDesk();
-    request(API + '/cleanup', {method:'POST',body:JSON.stringify({action:action,id:id,confirmed:true}),timeout:60000}).then(function () {
-      S.quarantineConfirm = ''; refreshAfterMutation();
-    }).catch(function (error) { els.deskMessage.textContent = activityError(error); }).then(function () {S.activityBusy=false;renderDesk();});
-  }
-  function performRollback(checkpoint) {
-    if (S.activityBusy) return;
-    S.activityBusy = true;
-    els.deskMessage.textContent = '正在按检查点回滚…';
-    renderDesk();
-    request(API + '/rollback', { method: 'POST', body: JSON.stringify({ confirmed: true, checkpoint: checkpoint }), timeout: 120000 })
-      .then(function (data) {
-        S.rollbackConfirm = '';
-        if (data.changed === false) els.deskMessage.textContent = '当前清单已经是这个状态，无需回滚。';
+
+  function renderPlugins(content, card, note, selection) {
+    var data = S.activity, items = pluginItems(data), trials = data.trials || [];
+    note('运行状态与试用放在一起。状态由宿主报告；“运行中”仍需结合实际功能确认。');
+    var search = el('input', 'bingo-select'); search.type = 'search'; search.placeholder = '搜索插件名'; search.value = S.pluginQuery;
+    search.setAttribute('aria-label', '搜索插件名'); content.appendChild(search);
+    var filters = el('div', 'bingo-filters');
+    [['all','全部'],['failed','加载异常'],['trial','试用'],['changed','最近变更'],['disabled','已禁用']].forEach(function (f) {
+      var button = deskButton(f[1], function () { S.pluginFilter = f[0]; S.removeConfirm = ''; renderDesk(); });
+      button.setAttribute('aria-pressed', S.pluginFilter === f[0] ? 'true' : 'false'); filters.appendChild(button);
+    }); content.appendChild(filters);
+    var count = el('p', 'bingo-muted'); count.setAttribute('role', 'status'); content.appendChild(count);
+    var list = el('div', 'bingo-plugin-list'); content.appendChild(list);
+    function draw() {
+      while (list.firstChild) list.removeChild(list.firstChild);
+      var changed = (data.history || []).filter(function (h) { return ['added','updated','enabled','disabled'].indexOf(h.kind) !== -1; }).map(function (h) { return h.name; });
+      var visible = items.filter(function (item) {
+        return item.name.toLowerCase().indexOf(S.pluginQuery.toLowerCase().trim()) !== -1 &&
+          (S.pluginFilter === 'all' || (S.pluginFilter === 'trial' ? trials.some(function (t) { return t.name === item.name; }) : S.pluginFilter === 'changed' ? changed.indexOf(item.name) !== -1 : item.state === S.pluginFilter));
+      }).sort(function (a, b) { return (a.state === 'failed' ? 0 : 1) - (b.state === 'failed' ? 0 : 1) || a.name.localeCompare(b.name); });
+      count.textContent = '显示 ' + visible.length + ' / ' + items.length + ' 个插件' + (trials.length ? ' · ' + trials.length + ' 个试用中' : ' · 暂无试用');
+      if (!visible.length) list.appendChild(el('p', 'bingo-muted', '没有符合条件的插件，可调整筛选或搜索词。'));
+      visible.forEach(function (item) {
+        var row = el('article', 'bingo-record'); row.appendChild(el('strong', '', item.name));
+        row.appendChild(el('p', 'bingo-muted', '声明：' + (item.version || '未声明') + ' · 安装版本：' + (item.installedVersion || '未知')));
+        var badge = el('span', 'bingo-check-state', STATE_LABELS[item.state] || STATE_LABELS.unknown); badge.setAttribute('data-state', item.state); row.appendChild(badge);
+        var trial = trials.filter(function (t) { return t.name === item.name; })[0];
+        var actions = el('div', 'bingo-record-actions');
+        if (!trial) actions.appendChild(deskButton('标记试用', function () { performTrial('start', item); }));
         else {
-          var plan = data.plan || {};
-          var parts = [];
-          if ((plan.remove || []).length) parts.push('移除 ' + plan.remove.length);
-          if ((plan.install || []).length) parts.push('重装 ' + plan.install.length);
-          if ((plan.enable || []).length) parts.push('启用 ' + plan.enable.length);
-          if ((plan.disable || []).length) parts.push('停用 ' + plan.disable.length);
-          els.deskMessage.textContent = '回滚完成（' + (parts.join('、') || '无变化') + '），需要重启后生效。';
+          row.appendChild(el('p', 'bingo-muted', (trial.reviewDue ? '待决定' : '试用中') + ' · ' + formatTime(trial.createdAt)));
+          actions.appendChild(deskButton('保留', function () { performTrial('keep', trial); }));
+          actions.appendChild(deskButton('下次启动再问', function () { performTrial('snooze', trial); }, !trial.reviewDue));
+          if (trial.versionChanged) {
+            row.appendChild(el('p', 'bingo-muted', '安装声明已变化，重新标记后才能移除。'));
+            actions.appendChild(deskButton('重新标记', function () { performTrial('start', item); }));
+          }
+          actions.appendChild(deskButton(S.removeConfirm === trial.id ? '确认移除' : '移除', function () {
+            if (S.removeConfirm !== trial.id) { S.removeConfirm = trial.id; els.deskMessage.textContent = '确认移除 ' + trial.name + '？相关功能将停止，其他会话也可能受影响。'; renderDesk(); }
+            else performTrial('remove', trial);
+          }, !trial.removable || !data.canRemove));
+          if (S.removeConfirm === trial.id) actions.appendChild(deskButton('取消', function () { S.removeConfirm = ''; renderDesk(); }));
         }
-        refreshAfterMutation();
-      })
-      .catch(function (error) {
-        els.deskMessage.textContent = activityError(error);
-      })
-      .then(function () {
-        S.activityBusy = false;
-        renderDesk();
+        row.appendChild(actions); list.appendChild(row);
       });
+    }
+    search.addEventListener('input', function () { S.pluginQuery = search.value; S.removeConfirm = ''; draw(); }); draw();
+    if (selection) { search.focus(); search.setSelectionRange(selection.start, selection.end); }
   }
 
-  function restoreLegacyPlugins() {
-    if (S.activityBusy) return;
-    S.activityBusy = true;
-    els.deskMessage.textContent = '正在恢复旧版停用记录…';
-    renderDesk();
-    request(API + '/rescue', { method: 'POST', body: JSON.stringify({ action: 'restore-legacy', confirmed: true }), timeout: 30000 })
-      .then(function () {
-        S.safeConfirm = false; S.legacyConfirm = false;
-        els.deskMessage.textContent = '已恢复之前停用的插件，请重启后检查运行状态。';
-        refreshAfterMutation();
-      })
-      .catch(function (error) {
-        els.deskMessage.textContent = activityError(error);
-      })
-      .then(function () {
-        S.activityBusy = false;
-        renderDesk();
-      });
+  function changeLabel(kind) {
+    return {added:'新增',updated:'版本变化',removed:'移除',enabled:'启用',disabled:'停用','trial-started':'开始试用','trial-kept':'保留试用','trial-removed':'移除试用'}[kind] || '变更';
   }
 
-  function performCleanup(paths) {
-    if (S.activityBusy) return;
-    S.activityBusy = true;
-    els.deskMessage.textContent = '正在移入隔离区…';
-    renderDesk();
-    request(API + '/cleanup', { method: 'POST', body: JSON.stringify({ confirmed: true, ids: paths }), timeout: 60000 })
-      .then(function (data) {
-        S.cleanupConfirm = false;
-        S.cleanupPick = Object.create(null);
-        els.deskMessage.textContent = '已隔离 ' + (data.isolated || []).length + ' 个候选目录，可恢复。';
-        refreshAfterMutation();
-      })
-      .catch(function (error) {
-        els.deskMessage.textContent = activityError(error);
-      })
-      .then(function () {
-        S.activityBusy = false;
-        renderDesk();
-      });
+  function diagnosticSummary(data, status) {
+    var valid = function (name) { return typeof name === 'string' && /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/i.test(name); };
+    var version = function (value) { return typeof value === 'string' && value.length <= 96 && (/^(latest|next|beta|alpha|canary|stable|dev)$/.test(value) || /^[v0-9.x*~^<>=| +\-]+$/.test(value) || /^[~^<>= ]*\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(value)) ? value : '自定义来源或未知（地址已省略）'; };
+    var items = pluginItems(data).filter(function (p) { return valid(p.name); });
+    var lines = ['Bingo 排查摘要 · v' + version(status && status.version), '宿主报告：插件 ' + items.length + ' 个；加载异常 ' + items.filter(function (p) { return p.state === 'failed'; }).length + ' 个；无法确认 ' + items.filter(function (p) { return !STATE_LABELS[p.state] || p.state === 'unknown'; }).length + ' 个。'];
+    items.filter(function (p) { return p.state === 'failed'; }).concat(items.filter(function (p) { return p.state !== 'failed'; })).slice(0, 60).forEach(function (p) { lines.push(p.name + ' · ' + version(p.version) + ' · ' + (STATE_LABELS[p.state] || STATE_LABELS.unknown)); });
+    if (items.length > 60) lines.push('仅列出前 60 个插件，异常优先。');
+    lines.push('近期变更：');
+    (data.history || []).filter(function (h) { return valid(h.name); }).slice(0, 8).forEach(function (h) { lines.push(changeLabel(h.kind) + ' ' + h.name + ' · ' + version(h.to || h.from)); });
+    lines.push('仅供排查参考，不代表业务功能已通过验收。'); return lines.join('\n');
   }
 
-  function refreshAfterMutation() {
-    loadActivity();
-    loadRecovery();
+  var tools = null;
+  var toolsPromise = null;
+  function loadTools() {
+    if (tools) return tools.load();
+    if (toolsPromise) return toolsPromise;
+    S.toolsError = '';
+    toolsPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = window.__DSH_BINGO_TOOLS_URL__ || API + '/tools.js?v=' + encodeURIComponent(S.version);
+      script.async = true;
+      var timer = window.setTimeout(function () { finish(new Error('timeout')); }, 15000);
+      function finish(error) {
+        window.clearTimeout(timer); script.onload = script.onerror = null;
+        if (script.parentNode) script.parentNode.removeChild(script);
+        if (error) { reject(error); return; }
+        if (typeof window.__DSH_BINGO_TOOLS__ !== 'function') { reject(new Error('missing tools')); return; }
+        tools = window.__DSH_BINGO_TOOLS__({state:S,els:els,el:el,request:request,button:deskButton,render:renderDesk,time:formatTime,restart:enterRestarting,error:activityError,loadActivity:loadActivity});
+        resolve(tools);
+      }
+      script.onload = function () { finish(); };
+      script.onerror = function () { finish(new Error('load')); };
+      document.head.appendChild(script);
+    }).then(function () { renderDesk(); return tools.load(); }).catch(function () {
+      S.toolsError = '工具加载失败，重启和插件查看仍可使用。'; renderDesk();
+    }).then(function () { toolsPromise = null; });
+    return toolsPromise;
   }
+
   function loadActivity() {
     if (S.activityLoading) return Promise.resolve();
     S.activityLoading = true;
+    var requestId = ++S.activityRequest; S.activityError = '';
     els.deskMessage.textContent = '正在读取…';
     els.deskRefresh.disabled = true;
     return request(API + '/activity', { timeout: 15000 }).then(function (data) {
       if (!data || data.ok === false) throw new Error('Bad activity');
+      if (requestId !== S.activityRequest) return;
       S.activity = data;
       els.deskMessage.textContent = data.warning || '记录仅保存在本机';
     }).catch(function (error) {
-      els.deskMessage.textContent = activityError(error);
+      if (requestId !== S.activityRequest) return;
+      S.activityError = activityError(error); els.deskMessage.textContent = S.activityError;
     }).then(function () {
+      if (requestId !== S.activityRequest) return;
       S.activityLoading = false;
       renderDesk();
     });
@@ -1239,15 +1097,16 @@
     if (!S.desk) rememberFocus();
     closePanel(false);
     S.desk = true;
-    S.deskTab = tab || 'history';
+    if (tab === 'trials' || tab === 'checks') { S.pluginFilter = tab === 'trials' ? 'trial' : 'all'; tab = 'plugins'; }
+    if (['recovery','cleanup','health'].indexOf(tab) !== -1) { S.tool = tab; tab = 'tools'; }
+    S.deskTab = tab || 'overview';
     S.removeConfirm = '';
     S.rollbackConfirm = '';
     S.safeConfirm = false; S.legacyConfirm = false;
     S.cleanupConfirm = false;
     els.deskLayer.hidden = false;
     renderDesk();
-    loadActivity();
-    loadRecovery();
+    if (S.deskTab === 'tools') loadTools(); else loadActivity();
     try { els.desk.focus({ preventScroll: true }); } catch (err) {}
   }
 
@@ -1269,6 +1128,7 @@
       action: action, name: item.name, id: item.id, version: item.version, confirmed: action === 'remove'
     }) }).then(function (data) {
       result = data;
+      if (data.restartRequired) S.restartSuggested = true;
       S.removeConfirm = '';
       return loadActivity();
     }).then(function () {
@@ -1315,7 +1175,7 @@
 
   function trapTab(event) {
     var container = S.desk ? els.desk : els.dialog;
-    var nodes = container.querySelectorAll('button:not([disabled]), select:not([disabled])');
+    var nodes = container.querySelectorAll('button:not([disabled]), select:not([disabled]), input:not([disabled]), textarea');
     if (!nodes.length) return;
     var first = nodes[0];
     var last = nodes[nodes.length - 1];
@@ -1428,22 +1288,21 @@
   }
 
   function bind() {
-    els.manage.addEventListener('click', function () { openDesk('history'); });
+    els.manage.addEventListener('click', function () { openDesk('overview'); });
     els.tryGroup.addEventListener('click', trialPendingGroup);
     els.deskClose.addEventListener('click', function () { closeDesk(); });
     els.deskRefresh.addEventListener('click', function () {
-      loadActivity();
-      loadRecovery();
+      if (S.deskTab === 'tools') loadTools(); else loadActivity();
     });
     els.deskLayer.addEventListener('pointerdown', function (event) { if (event.target === els.deskLayer) closeDesk(); });
-    ['history', 'trials', 'recovery', 'cleanup', 'health', 'checks'].forEach(function (tab) {
+    ['overview', 'plugins', 'history', 'tools'].forEach(function (tab) {
       els[tab + 'Tab'].addEventListener('click', function () {
         if (S.activityBusy) return;
         S.deskTab = tab;
         S.removeConfirm = '';
         S.safeConfirm = false; S.legacyConfirm = false;
         S.cleanupConfirm = false;
-        if ((tab === 'recovery' || tab === 'cleanup') && !S.recovery) loadRecovery();
+        if (tab === 'tools') loadTools(); else loadActivity();
         renderDesk();
       });
     });
