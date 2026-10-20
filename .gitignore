@@ -12,6 +12,9 @@ test/fixtures/tmp/
 .edge-test/
 .packcache/
 
+# Generated assets kept out of the repo
+output/
+
 # Tool scratch files
 *.log
 asar-probe.txt
