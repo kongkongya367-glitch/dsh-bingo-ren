@@ -190,7 +190,7 @@ if (-not (Test-Path -LiteralPath $manifestPath)) {
 $manifest = Read-ProfileManifest
 
 # Validate the copy source before touching the profile.
-$copyItems = @('package.json', 'cordis.patch.yml', 'icon.svg', 'README.md', 'README.zh.md', 'LICENSE', 'lib', 'client', 'assets', 'screenshots.json')
+$copyItems = @('package.json', 'cordis.patch.yml', 'icon.svg', 'README.md', 'README.en.md', 'LICENSE', 'lib', 'client', 'assets', 'screenshots.json')
 $presentItems = @()
 foreach ($item in $copyItems) {
   if (Test-Path -LiteralPath (Join-Path $repoDir $item)) { $presentItems += $item }
