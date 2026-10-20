@@ -2,6 +2,10 @@
 
 **装完插件，下一步也有人接住。**
 
+> 装完忘了重启？装了十几个插件启动越来越慢？新版本把东西弄坏了？
+>
+> Bingo 记着每一步，也留好了退路。
+
 Bingo 是 DeepSeek Harness 的插件善后管家：提醒重启、检查运行状态、决定试用去留，遇到问题再找变更记录和恢复入口。
 
 [安装](#安装) · [版本与下载](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases) · [English](README.en.md)
@@ -71,6 +75,8 @@ https://github.com/kongkongya367-glitch/dsh-bingo-ren
 <details>
 <summary>回滚：退回之前的插件清单</summary>
 
+<img src="assets/screenshot-recovery.png?v=060" width="100%" alt="恢复页：配置回滚与最小启动入口">
+
 每次观察到清单变化，保留变化前的检查点（最近 8 个）。确认后通过宿主原生插件管理器增删包、恢复已记录的版本声明与启用状态；插件数据目录保留。完成后需要重启。
 
 0.6.0 修正了启用状态在活动清单及检查点中丢失的问题，新记录会保留这项信息。旧记录中缺失的启用状态无法追溯：恢复已安装包时保留当前启用选择，不凭空假设它过去启用了。
@@ -102,6 +108,8 @@ node lib/rescue-cli.mjs restore --profile "你的 profile 完整目录" --closed
 <details>
 <summary>残留隔离：先能撤销，再考虑删除</summary>
 
+<img src="assets/screenshot-cleanup.png?v=060" width="100%" alt="残留隔离：候选列表、移入隔离区与恢复">
+
 在「恢复与工具」选择「残留隔离与恢复」。扫描至少静置 10 分钟的 `.ignored` 副本、PID 已退出的临时包目录，以及记录中已移除、名称精确匹配且未在其他可读标准 profile 中安装的数据目录。大小可能只是估算。
 
 候选仍需核对用途。勾选后移动到同卷隔离区，可恢复；原位置已有新内容时停止覆盖。隔离不释放磁盘空间，再次确认永久删除后才释放。不会整目录删除 `.ignored`，不会按“清单里没有”删除传递依赖，不跟随符号链接或 junction 祖先，保护活动引用和 Bingo 自身代码。
@@ -110,6 +118,8 @@ node lib/rescue-cli.mjs restore --profile "你的 profile 完整目录" --closed
 
 <details>
 <summary>启动趋势：同一观测点下对照变化</summary>
+
+<img src="assets/screenshot-health.png?v=060" width="100%" alt="启动趋势：每次启动的耗时与插件变化对照">
 
 在工具选择「启动趋势」。保存最近 60 次观测，口径是**宿主进程启动到 Bingo 界面首次连接就绪**，不包含完整 Electron 启动。显示就绪时的包数、运行／失败条目与异常包数，并对照插件变化。
 
