@@ -2,8 +2,5 @@ url: https://github.com/kongkongya367-glitch/dsh-bingo-ren
 name: kongkongya367-glitch/dsh-bingo-ren
 category: ui
 description:
-  zh: 'DeepSeek Harness 插件善后管家：待办概览、插件搜索与状态检查、重启提醒、变更记录、临时试用、排查摘要与离线急救。'
-  en: 'A plugin companion for DeepSeek Harness: an action overview, searchable plugin status and trials, change history, diagnostic summaries and independent recovery.'
-
-# 固定到 v0.6.0 GitHub Release 的预构建安装包。
-tarball: https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases/download/v0.6.0/dsh-bingo-ren-0.6.0.tgz
+  en: "Adds a draggable restart button and a plugin panel to the DeepSeek Harness desktop app: it prompts when the profile plugin list changes, records additions and removals per profile, tracks trials, reports host startup state, and offers rollback, minimal boot and recoverable cleanup."
+  zh: "为 DeepSeek Harness 桌面端添加可拖动重启按钮与插件面板：插件清单变化时提醒重启，按 profile 记录新增与移除、跟踪试用、显示宿主启动状态，并提供回滚、最小启动与可恢复的残留清理。"
