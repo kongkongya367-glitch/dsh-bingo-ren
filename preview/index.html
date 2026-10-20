@@ -432,7 +432,7 @@
       { id:'candidate-1', kind: 'ignored', name: 'dsh-example-old', path: 'C:\\Users\\example\\.dsh\\profiles\\desktop\\node_modules\\.ignored\\dsh-example-old', bytes: 184320 },
       { id:'candidate-2', kind: 'tmp', name: 'dsh-whale-widget', path: 'C:\\Users\\example\\.dsh\\profiles\\desktop\\node_modules\\dsh-whale-widget_tmp_19580_14', bytes: 96432 }
     ];
-    var demoSafeMode = scene === 'recovery-safe' ? { at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), applied: true, disabled: ['dsh-whale-widget', 'dsh-plugin-market'] } : null;
+    var demoSafeMode = scene === 'recovery-legacy' ? { at: new Date(Date.now() - 20 * 60 * 1000).toISOString(), applied: true, disabled: ['dsh-whale-widget', 'dsh-plugin-market'] } : null;
     var demoQuarantine = scene === 'cleanup-isolated' ? [{id:'isolated-example',name:'dsh-example-old',status:'isolated',originalPath:'C:/Users/example/.dsh/profiles/desktop/node_modules/.ignored/dsh-example-old',at:new Date().toISOString()}] : [];
     if(scene==='cleanup-isolated')demoLeftovers=demoLeftovers.slice(1);
     window.__BINGO_DEMO_CALLS__ = [];
@@ -508,7 +508,10 @@
       if(method==='POST')window.__BINGO_DEMO_CALLS__.push({url:url,body:JSON.parse(init.body||'{}')});
       if(url.indexOf('/bingo/ready')!==-1)return reply({ok:true});
       if(url.indexOf('/bingo/health')!==-1)return reply(demoHealth);
-      if(url.indexOf('/bingo/rescue')!==-1)return reply({ok:true,scheduled:true},202);
+      if(url.indexOf('/bingo/rescue')!==-1) {
+        if(JSON.parse(init.body).action==='restore-legacy') { demoSafeMode=null; return reply({ok:true,restartRequired:true}); }
+        return reply({ok:true,scheduled:true},202);
+      }
       if (url.indexOf('/bingo/status') !== -1) return reply(statusPayload());
       if (url.indexOf('/bingo/activity') !== -1) return reply(activityPayload());
       if (url.indexOf('/bingo/trials') !== -1) {
@@ -534,12 +537,6 @@
         return reply({ ok: true, changed: true, restartRequired: true,
           plan: { remove: ['dsh-bingo-extra'], install: [], enable: ['dsh-plugin-market'], disable: [], same: 3 } }, 202);
       }
-      if (url.indexOf('/bingo/safe-mode') !== -1) {
-        var safeBody = JSON.parse(init.body);
-        if (safeBody.action === 'exit') { demoSafeMode = null; return reply({ ok: true, cleared: ['dsh-whale-widget'], restartRequired: true }); }
-        demoSafeMode = { at: new Date().toISOString(), applied: true, disabled: ['dsh-whale-widget', 'dsh-plugin-market'] };
-        return reply({ ok: true, targets: demoSafeMode.disabled, failures: [], restartRequired: true }, 202);
-      }
       if (url.indexOf('/bingo/cleanup') !== -1) {
         var cleanBody = JSON.parse(init.body);
         if(cleanBody.action==='restore'||cleanBody.action==='purge') {demoQuarantine=demoQuarantine.filter(function(q){return q.id!==cleanBody.id;});return reply({ok:true});}
@@ -564,7 +561,7 @@
       ['restarting', '重启等待'],
       ['web', 'Web 降级']
       ,['history', '变更记录'], ['trials', '临时试用'], ['checks', '验收清单'],
-      ['recovery', '恢复'], ['recovery-safe', '最小启动中'], ['cleanup','残留清理'], ['health','启动体检']
+      ['recovery', '恢复'], ['recovery-safe', '最小启动中'], ['recovery-legacy', '旧版恢复'], ['cleanup','残留清理'], ['health','启动体检']
     ];
     var bar = document.getElementById('devbar');
     if (params.get('dev') === '1' && bar) {
@@ -586,7 +583,7 @@
     }
 
     window.addEventListener('dsh-bingo:ready', function () {
-      if (['history', 'trials', 'checks', 'recovery', 'recovery-safe', 'recovery-clean','cleanup','cleanup-isolated','health'].indexOf(scene) !== -1) {
+      if (['history', 'trials', 'checks', 'recovery', 'recovery-safe', 'recovery-legacy', 'recovery-clean','cleanup','cleanup-isolated','health'].indexOf(scene) !== -1) {
         window.__DSH_BINGO__.openManager(scene.indexOf('recovery') === 0 ? 'recovery' : scene.indexOf('cleanup') === 0 ? 'cleanup' : scene);
         return;
       }

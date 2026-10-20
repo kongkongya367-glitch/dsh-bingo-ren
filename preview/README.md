@@ -18,6 +18,7 @@
 | `?scene=checks` | 运行状态验收 |
 | `?scene=recovery` | 恢复页（最小启动 · 离线急救 · 重启记录 · 回滚点） |
 | `?scene=recovery-safe` | 最小启动已启用 |
+| `?scene=recovery-legacy` | 旧版停用记录恢复（与最小启动入口并存） |
 | `&theme=dark` | 深色主题 |
 | `&dev=1` | 场景切换工具 |
 

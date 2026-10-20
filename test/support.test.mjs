@@ -81,7 +81,11 @@ test('independent recovery copy can inspect status without the installed package
 });
 
 test('native writer lock and surviving package runs block recovery',t=>{
-  const f=fixture(t);fs.writeFileSync(path.join(f.profile,'package.json.lock'),process.pid+'\n');
+  const f=fixture(t);
+  fs.mkdirSync(path.join(f.profile,'node_modules/.pnpm'),{recursive:true});
+  fs.writeFileSync(path.join(f.profile,'node_modules/.pnpm/lock.yaml'),'lockfileVersion: 9');
+  assert.equal(withProfileLock(f.profile,()=>true),true,'persistent pnpm lock is not a running operation');
+  fs.writeFileSync(path.join(f.profile,'package.json.lock'),process.pid+'\n');
   assert.throws(()=>f.rescue().prepare('enter'),{code:'profile-busy'});
   fs.unlinkSync(path.join(f.profile,'package.json.lock'));
   fs.mkdirSync(path.join(f.profile,'.plugin-manager'));fs.writeFileSync(path.join(f.profile,'.plugin-manager/run.json'),JSON.stringify({pid:process.pid,grouped:false}));
@@ -96,6 +100,7 @@ test('native stale PID locks are reclaimed, but corrupt locks are retained',t=>{
 
 test('only old, unlinked leftovers are offered; live temporary runs are excluded',t=>{
   const f=fixture(t);f.make('profiles/desktop/node_modules/.ignored/old');f.make('profiles/desktop/node_modules/@scope/half_tmp_2147483646_1');
+  for(const name of ['commander','clsx','argparse'])f.make('profiles/desktop/node_modules/'+name);
   f.make('profiles/desktop/node_modules/active_tmp_'+process.pid+'_1');
   fs.mkdirSync(path.join(f.profile,'node_modules/new_tmp_2147483646_2'));
   const q=f.quarantine();assert.deepEqual(q.scan().map(x=>x.kind).sort(),['ignored','tmp']);

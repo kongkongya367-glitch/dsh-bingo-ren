@@ -46,6 +46,8 @@ try {
 
   $required = @(
     'lib/index.js',
+    'lib/host-support.js',
+    'lib/plugin-management.js',
     'lib/activity.js',
     'lib/rescue.js',
     'lib/local-state.js',

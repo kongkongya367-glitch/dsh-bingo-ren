@@ -4,6 +4,8 @@
 
 - `lib/activity.js`：按 profile 隔离的变更记录、试用状态与宿主运行状态验收。
 - `lib/index.js`：Cordis 宿主插件，负责注入、路由、插件清单检测和重启调度。
+- `lib/host-support.js`：宿主与路径适配、来源栅栏、注入、HTTP、状态和 helper 调用等基础函数；原有具名测试导出仍由入口转发。
+- `lib/plugin-management.js`：变更/试用、验收及恢复操作的组合层；以访问器读取当前 profile，共享同一启动中的原生操作互斥状态，不反向导入入口。
 - `lib/restart-helper.cjs`：独立重启进程，仅结束指定的 shell/host PID，等待退出和端口释放，再启动应用。
 - `preview/src/`：可读的客户端 JS/CSS；`npm run build` 生成 `client/` 发布文件。
 - `preview/index.html`：使用模拟状态的离线预览。
@@ -90,3 +92,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-local-deskto
 - health.js：每个 host boot 建立观测记录，客户端 POST /bingo/ready 确认连接；以单调进程时钟计时，口径不包含完整 Electron 启动。统计普通启动均值，最小启动和晚接入另列。缺失宿主信息保留未知。
 - 新路由 GET /bingo/health、POST /bingo/ready、POST /bingo/rescue；POST /bingo/cleanup 使用候选 IDs 和 isolate/restore/purge 动作。所有写入动作都需要 confirmed=true，并经过同一来源栅栏。
 - 测试包含临时目录、跨进程 helper、原配置字节恢复、配置冲突、符号链接、跨 profile 数据保护、清理恢复与启动口径；真实用户 profile 仅做只读冒烟。
+
+## 未发布的结构整理
+
+- 旧 `/bingo/safe-mode` 进入路由已移除，新最小启动只走 rescue。已有 `safe-mode-<profile 哈希>.json` 仍可从恢复页显式确认恢复，对应 `POST /bingo/rescue` 的 `action: restore-legacy`；只重新启用记录中的插件，不创建新停用记录。
+- 旧状态的读取不产生 profile 写入。恢复与回滚共用操作互斥，部分失败保留剩余项；最小启动与旧记录恢复使用独立的界面确认状态。
+- 更早的、未标注 profile 的 `safe-mode.json` 不自动归属或删除。可核对其中插件名后，在原 profile 的宿主插件页手动重新启用，避免把其他 profile 的旧记录应用到当前 profile。
+- 删除不再参与运行的旧扫描/忙碌判定代码及其专属测试；真实 profile 冒烟检查只调用当前 quarantine 扫描器与 native PID guard。

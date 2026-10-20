@@ -91,6 +91,15 @@ try {
   assert.match(await text(), /离线入口/);
   assert.equal(await evaluate(shadow+".querySelector('[data-el=recoveryTab]').getAttribute('aria-pressed')"),'true');
   await shot('minimal-boot');
+  await navigate('recovery-legacy');
+  assert.match(await text(), /最小启动并重启/);
+  assert.match(await text(), /旧版社区插件停用记录/);
+  await clickText('最小启动并重启');
+  await clickText('恢复之前的选择');
+  assert.equal(await evaluate("window.__BINGO_DEMO_CALLS__.filter(c=>c.url.includes('/rescue')).length"),0,'minimal boot confirmation does not authorize legacy restore');
+  await clickText('确认恢复');
+  await waitFor(async () => !(await text()).includes('旧版社区插件停用记录'), 'legacy recovery');
+  assert.equal(await evaluate("window.__BINGO_DEMO_CALLS__.filter(c=>c.url.includes('/rescue'))[0].body.action"),'restore-legacy');
   await navigate('cleanup');
   await evaluate(shadow + ".querySelector('[data-el=deskContent] input[type=checkbox]').click()");
   await clickText('隔离所选');

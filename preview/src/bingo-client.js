@@ -129,6 +129,7 @@
     recoveryLoading: false,
     rollbackConfirm: '',
     safeConfirm: false,
+    legacyConfirm: false,
     cleanupPick: Object.create(null),
     cleanupConfirm: false,
   };
@@ -830,7 +831,7 @@
       'checkpoint-missing': '这个回滚点已失效，请刷新后重试。',
       'invalid-checkpoint': '回滚点无效，请刷新后重试。',
       'nothing-to-disable': '当前没有可停用的社区插件。',
-      'not-in-safe-mode': '当前不在安全模式。',
+      'not-in-safe-mode': '没有待恢复的旧版停用记录。',
       'linked-path': '配置或候选目录包含链接，已拒绝操作以保护链接目标。',
       'quarantine-item-unavailable': '隔离项状态已变化，请刷新重试。',
       'quarantine-move-failed': '移动未完成，候选保留或已记录在隔离区，请刷新核对。',
@@ -944,17 +945,18 @@
           if (!S.safeConfirm) { S.safeConfirm = true; els.deskMessage.textContent = '会中断当前任务。先备份配置，旧进程完全退出后才修改；恢复遇到新改动会停止。确认继续？'; renderDesk(); return; }
           performRescue(minimal.active ? 'restore' : 'enter');
         }, !minimal.available || (rec.busy && rec.busy.busy)));
-        if (S.safeConfirm) rescueActions.appendChild(deskButton('取消', function () { S.safeConfirm = false; renderDesk(); }));
+        if (S.safeConfirm) rescueActions.appendChild(deskButton('取消', function () { S.safeConfirm = false; S.legacyConfirm = false; renderDesk(); }));
         rescueRow.appendChild(rescueActions);
         if (minimal.offline && (minimal.offline.launcher || minimal.offline.cli)) rescueRow.appendChild(el('p', 'bingo-muted', '离线入口（关闭 Harness 后打开）：' + (minimal.offline.launcher || minimal.offline.cli)));
         if (minimal.backupDir) rescueRow.appendChild(el('p', 'bingo-muted', '本机备份：' + minimal.backupDir));
-      } else if (rec.safeMode) {
+      } else if (!rec.safeMode) note('当前运行方式不能从这里重启；离线急救工具可在完全退出应用后使用。');
+      if (rec.safeMode) {
         var safeRow = card('旧版社区插件停用记录', '可通过宿主恢复之前停用的插件；该方式依赖可打开的应用界面。');
-        safeRow.appendChild(deskButton(S.safeConfirm ? '确认恢复' : '恢复之前的选择', function () {
-          if (!S.safeConfirm) { S.safeConfirm = true; renderDesk(); return; }
-          performSafeMode('exit');
+        safeRow.appendChild(deskButton(S.legacyConfirm ? '确认恢复' : '恢复之前的选择', function () {
+          if (!S.legacyConfirm) { S.legacyConfirm = true; renderDesk(); return; }
+          restoreLegacyPlugins();
         }));
-      } else note('当前运行方式不能从这里重启；离线急救工具可在完全退出应用后使用。');
+      }
       note('停止与拉起记录（来自 helper 日志，不代表界面已就绪）：');
       var tl = S.timeline;
       if (!tl) note('正在读取重启记录…');
@@ -1131,7 +1133,7 @@
     if (S.activityBusy) return;
     S.activityBusy = true; renderDesk();
     request(API + '/rescue', { method: 'POST', body: JSON.stringify({action:action,confirmed:true}), timeout:15000 }).then(function () {
-      S.activityBusy = false; S.safeConfirm = false; enterRestarting();
+      S.activityBusy = false; S.safeConfirm = false; S.legacyConfirm = false; enterRestarting();
     }).catch(function (error) { S.activityBusy = false; els.deskMessage.textContent = activityError(error); renderDesk(); });
   }
   function performQuarantine(action, id) {
@@ -1170,15 +1172,15 @@
       });
   }
 
-  function performSafeMode(action) {
+  function restoreLegacyPlugins() {
     if (S.activityBusy) return;
     S.activityBusy = true;
-    els.deskMessage.textContent = action === 'enter' ? '正在记录安全模式…' : '正在退出安全模式…';
+    els.deskMessage.textContent = '正在恢复旧版停用记录…';
     renderDesk();
-    request(API + '/safe-mode', { method: 'POST', body: JSON.stringify({ action: action, confirmed: true }), timeout: 30000 })
+    request(API + '/rescue', { method: 'POST', body: JSON.stringify({ action: 'restore-legacy', confirmed: true }), timeout: 30000 })
       .then(function () {
-        S.safeConfirm = false;
-        els.deskMessage.textContent = action === 'enter' ? '已进入安全模式，重启后只剩官方插件。' : '已退出安全模式，请在设置里重新启用需要的插件。';
+        S.safeConfirm = false; S.legacyConfirm = false;
+        els.deskMessage.textContent = '已恢复之前停用的插件，请重启后检查运行状态。';
         refreshAfterMutation();
       })
       .catch(function (error) {
@@ -1240,7 +1242,7 @@
     S.deskTab = tab || 'history';
     S.removeConfirm = '';
     S.rollbackConfirm = '';
-    S.safeConfirm = false;
+    S.safeConfirm = false; S.legacyConfirm = false;
     S.cleanupConfirm = false;
     els.deskLayer.hidden = false;
     renderDesk();
@@ -1439,7 +1441,7 @@
         if (S.activityBusy) return;
         S.deskTab = tab;
         S.removeConfirm = '';
-        S.safeConfirm = false;
+        S.safeConfirm = false; S.legacyConfirm = false;
         S.cleanupConfirm = false;
         if ((tab === 'recovery' || tab === 'cleanup') && !S.recovery) loadRecovery();
         renderDesk();

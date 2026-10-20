@@ -6,6 +6,8 @@ import { Readable } from 'node:stream';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { profileKey } from '../lib/local-state.js';
+
 import plugin, {
   apply,
   buildFence,
@@ -640,6 +642,14 @@ test('runtime adopts a late profileContext over the inherited DSH_PROFILE_DIR', 
   assert.equal(status.profile.dir, path.resolve(actual));
   assert.equal(status.profile.name, 'bingo-selftest');
   assert.equal(status.pending, null, 'the actual profile baseline is adopted silently');
+  const activity = (await callRoute(runtime, '/bingo/activity')).json();
+  assert.deepEqual(activity.packages.map(p => p.name), ['dsh-actual']);
+  const oldBootId = status.bootId.slice(0, status.bootId.lastIndexOf(':') + 1) + profileKey(inherited);
+  assert.equal((await callRoute(runtime, '/bingo/ready', { method: 'POST', body: JSON.stringify({ bootId: oldBootId }) })).status, 409);
+  assert.equal((await callRoute(runtime, '/bingo/ready', { method: 'POST', body: JSON.stringify({ bootId: status.bootId }) })).status, 200);
+  const health = (await callRoute(runtime, '/bingo/health')).json();
+  assert.equal(health.items[0].packageCount, 1);
+  assert.ok(health.items[0].readyAt);
 
   // Detection now watches the actual profile.
   writeProfile(actual, {
@@ -1201,99 +1211,58 @@ test('rollback is refused while the native manager is busy', async (t) => {
   assert.equal(response.json().code, 'plugin-operation');
 });
 
-test('safe mode really disables community bundles and re-enables them on exit', async (t) => {
-  const toggles = [];
-  const manager = {
-    listBundles: async () => [],
-    listPlugins: async () => [],
-    setBundleEnabled: async (name, enabled) => {
-      toggles.push({ name, enabled });
-      return { application: 'applied' };
-    },
-  };
-  const ctx = setupRuntime({
-    manager,
-    packageJson: {
-      dependencies: { 'dsh-pet': '1', 'dsh-bingo-ren': '1' },
-      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-pet', 'dsh-bingo-ren'] } },
-    },
-  });
-  cleanup(ctx, t);
-  const post = body => callRoute(ctx.runtime, '/bingo/safe-mode', { method: 'POST', body: JSON.stringify(body) });
-  assert.equal((await post({ action: 'enter' })).json().code, 'confirmation-required');
-
-  const entered = await post({ action: 'enter', confirmed: true });
-  assert.equal(entered.status, 202, entered.body);
-  assert.deepEqual(entered.json().targets, ['dsh-pet']);
-  // The manager must actually be told to stop composing the community bundle.
-  assert.deepEqual(toggles, [{ name: 'dsh-pet', enabled: false }]);
-  const status = (await callRoute(ctx.runtime, '/bingo/status')).json();
-  assert.deepEqual(status.safeMode.disabled, ['dsh-pet']);
-  assert.equal(status.safeMode.applied, true);
-
-  const exited = await post({ action: 'exit', confirmed: true });
-  assert.equal(exited.status, 200, exited.body);
-  assert.deepEqual(toggles[1], { name: 'dsh-pet', enabled: true });
-  assert.deepEqual(exited.json().cleared, ['dsh-pet']);
-  assert.equal((await callRoute(ctx.runtime, '/bingo/status')).json().safeMode, null);
-  assert.equal((await post({ action: 'exit', confirmed: true })).json().code, 'not-in-safe-mode');
+test('retired safe-mode entry is gone; existing scoped records restore through rescue', async t => {
+  const toggles=[];
+  const manager={setBundleEnabled:async(name,enabled)=>{toggles.push({name,enabled});return {application:'applied'};}};
+  const ctx=setupRuntime({manager,desktop:true});cleanup(ctx,t);
+  assert.equal(ctx.runtime.routes.has('/bingo/safe-mode'),false);
+  assert.equal(ctx.runtime.enterSafeMode,undefined);
+  const file=path.join(ctx.stateDir,'safe-mode-'+profileKey(ctx.profileDir)+'.json');
+  fs.writeFileSync(file,JSON.stringify({at:'2026-10-19T00:00:00Z',applied:true,disabled:['dsh-pet']}));
+  const post=body=>callRoute(ctx.runtime,'/bingo/rescue',{method:'POST',body:JSON.stringify(body)});
+  assert.equal((await callRoute(ctx.runtime,'/bingo/recovery')).json().safeMode.disabled[0],'dsh-pet');
+  assert.deepEqual(toggles,[],'reading old state never changes plugin enablement');
+  assert.equal((await post({action:'restore-legacy'})).json().code,'confirmation-required');
+  assert.deepEqual(toggles,[]);
+  assert.equal((await post({action:'restore-legacy',confirmed:true})).status,200);
+  assert.deepEqual(toggles,[{name:'dsh-pet',enabled:true}]);
+  assert.equal(fs.existsSync(file),false);
+  assert.equal((await callRoute(ctx.runtime,'/bingo/status')).json().safeMode,null);
+  assert.equal((await post({action:'restore-legacy',confirmed:true})).json().code,'not-in-safe-mode');
 });
 
-test('safe mode without a native manager refuses instead of pretending', async (t) => {
-  const ctx = setupRuntime({
-    packageJson: {
-      dependencies: { 'dsh-pet': '1' },
-      dsh: { profile: { bundles: ['dsh-pet'] } },
-    },
-  });
-  cleanup(ctx, t);
-  const response = await callRoute(ctx.runtime, '/bingo/safe-mode', {
-    method: 'POST',
-    body: JSON.stringify({ action: 'enter', confirmed: true }),
-  });
-  assert.equal(response.status, 409);
-  assert.equal(response.json().code, 'manager-unavailable');
+test('legacy restoration retains failed entries for retry and shares operation guards', async t => {
+  let refuse=true;const toggles=[];let release;let restoring;
+  const manager={setBundleEnabled:async(name,enabled)=>{
+    toggles.push({name,enabled});
+    if(restoring) await restoring;
+    return name==='broken'&&refuse?{application:'failed',error:{code:'busy'}}:{application:'applied'};
+  }};
+  const ctx=setupRuntime({manager,desktop:true});cleanup(ctx,t);
+  const file=path.join(ctx.stateDir,'safe-mode-'+profileKey(ctx.profileDir)+'.json');
+  fs.writeFileSync(file,JSON.stringify({applied:false,disabled:['ok','broken']}));
+  const post=()=>callRoute(ctx.runtime,'/bingo/rescue',{method:'POST',body:JSON.stringify({action:'restore-legacy',confirmed:true})});
+  assert.equal((await post()).status,409);
+  assert.deepEqual(JSON.parse(fs.readFileSync(file,'utf8')).disabled,['broken']);
+  refuse=false;restoring=new Promise(resolve=>{release=resolve;});
+  const pending=post();
+  while(toggles.length<3)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.equal(ctx.runtime.scheduleRestart('button').body.code,'operation-busy');
+  assert.equal((await post()).json().code,'operation-busy');
+  release();assert.equal((await pending).status,200);
+  assert.deepEqual(toggles.map(x=>x.name),['ok','broken','broken']);
+  assert.equal(fs.existsSync(file),false);
 });
 
-test('safe mode reports partial fsailure and keeps the record for a retry', async (t) => {
-  const manager = {
-    listBundles: async () => [],
-    listPlugins: async () => [],
-    setBundleEnabled: async () => ({ application: 'failed', error: { code: 'busy' } }),
-  };
-  const ctx = setupRuntime({
-    manager,
-    packageJson: { dependencies: { 'dsh-pet': '1' }, dsh: { profile: { bundles: ['dsh-pet'] } } },
-  });
-  cleanup(ctx, t);
-  const response = await callRoute(ctx.runtime, '/bingo/safe-mode', {
-    method: 'POST',
-    body: JSON.stringify({ action: 'enter', confirmed: true }),
-  });
-  assert.equal(response.status, 409);
-  assert.equal(response.json().ok, false);
-  assert.equal(response.json().failures.length, 1);
-  const status = (await callRoute(ctx.runtime, '/bingo/status')).json();
-  assert.equal(status.safeMode.applied, false, 'an unapplied record must not claim success');
-});
-
-test('safe mode refuses to run when every bundle is official', async (t) => {
-  const manager = {
-    listBundles: async () => [],
-    listPlugins: async () => [],
-    setBundleEnabled: async () => ({ application: 'applied' }),
-  };
-  const ctx = setupRuntime({
-    manager,
-    packageJson: { dependencies: {}, dsh: { profile: { bundles: ['@deepseek-ai/dsh-base'] } } },
-  });
-  cleanup(ctx, t);
-  const response = await callRoute(ctx.runtime, '/bingo/safe-mode', {
-    method: 'POST',
-    body: JSON.stringify({ action: 'enter', confirmed: true }),
-  });
-  assert.equal(response.status, 409);
-  assert.equal(response.json().code, 'nothing-to-disable');
+test('legacy restore refuses unavailable manager and active native writer', async t => {
+  const ctx=setupRuntime();cleanup(ctx,t);
+  const file=path.join(ctx.stateDir,'safe-mode-'+profileKey(ctx.profileDir)+'.json');
+  fs.writeFileSync(file,JSON.stringify({disabled:['dsh-pet']}));
+  const post=()=>callRoute(ctx.runtime,'/bingo/rescue',{method:'POST',body:JSON.stringify({action:'restore-legacy',confirmed:true})});
+  assert.equal((await post()).json().code,'manager-unavailable');
+  fs.writeFileSync(path.join(ctx.profileDir,'package.json.lock'),String(process.pid)+'\n');
+  assert.equal((await post()).json().code,'plugin-operation');
+  assert.equal(fs.existsSync(file),true);
 });
 
 test('cleanup quarantines only selected fresh scan IDs and supports restoring', async (t) => {
@@ -1342,7 +1311,7 @@ test('recovery routes enforce the trust fence', async (t) => {
   assert.equal((await callRoute(ctx.runtime, '/bingo/recovery', { headers: hostile })).status, 403);
   const post = pathName => callRoute(ctx.runtime, pathName, { method: 'POST', headers: hostile, body: '{}' });
   assert.equal((await post('/bingo/rollback')).status, 403);
-  assert.equal((await post('/bingo/safe-mode')).status, 403);
+  assert.equal((await post('/bingo/rescue')).status, 403);
   assert.equal((await post('/bingo/cleanup')).status, 403);
 });
 test('lastRestart is reconciled from the helper log tail', async (t) => {

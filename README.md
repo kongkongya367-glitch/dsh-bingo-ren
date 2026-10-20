@@ -178,7 +178,7 @@ node lib/rescue-cli.mjs restore --profile "你的 profile 完整目录" --closed
 
 切换最小配置、隔离、恢复与永久删除使用宿主的 `package.json.lock` PID 写锁，并检查遗留的包管理进程。活锁和不明锁会拒绝操作；只对已证实退出的 PID 按宿主协议接管。`.pnpm/lock.yaml` 是持久文件，不代表正在安装。
 
-回滚与旧版社区包停用仍通过原生插件管理器执行，保留宿主自身的保护与 HMR 规则。
+回滚与旧版停用记录的恢复仍通过原生插件管理器执行，保留宿主自身的保护与 HMR 规则。新增最小启动统一走上面的配置备份与恢复流程。
 
 ## 一枚按钮，随手放
 
@@ -207,7 +207,7 @@ node lib/rescue-cli.mjs restore --profile "你的 profile 完整目录" --closed
 <details>
 <summary>配置、兼容性与排查</summary>
 
-需要 **Node.js 20+** 与 **DeepSeek Harness 0.2.0-rc.1+**。完整重启依赖官方 Electron 桌面端；验收、原生移除、回滚和旧版社区包停用依赖宿主提供相应接口。最小启动要求标准桌面 profile 布局。能力缺失时，Bingo 会明确提示。
+需要 **Node.js 20+** 与 **DeepSeek Harness 0.2.0-rc.1+**。完整重启依赖官方 Electron 桌面端；验收、原生移除、回滚和旧版停用记录恢复依赖宿主提供相应接口。最小启动要求标准桌面 profile 布局。能力缺失时，Bingo 会明确提示。
 
 可在 profile 的 `cordis.patch.yml` 中配置：
 

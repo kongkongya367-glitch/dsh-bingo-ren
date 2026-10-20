@@ -152,7 +152,7 @@ All images are **real browser captures using mock data** — no real accounts, c
 <details>
 <summary>Configuration, compatibility and troubleshooting</summary>
 
-Requires **Node.js 20+** and **DeepSeek Harness 0.2.0-rc.1+**. Full restart needs the official Electron desktop app; acceptance, native removal, rollback and legacy bundle disabling need the matching host APIs. Minimal boot requires the standard desktop profile layout. Missing capabilities are reported explicitly.
+Requires **Node.js 20+** and **DeepSeek Harness 0.2.0-rc.1+**. Full restart needs the official Electron desktop app; acceptance, native removal, rollback and restoration of legacy disabled bundles need the matching host APIs. Minimal boot requires the standard desktop profile layout. Missing capabilities are reported explicitly.
 
 Configure in the profile's `cordis.patch.yml`:
 

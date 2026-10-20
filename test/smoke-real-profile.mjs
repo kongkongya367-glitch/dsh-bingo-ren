@@ -20,7 +20,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { findLeftovers, guardProfileWrites, dataDirCandidates } from '../lib/recovery.js';
 import {createQuarantine} from '../lib/quarantine.js';
 import {profileWriterBusy,packageRunBusy} from '../lib/local-state.js';
 
@@ -56,24 +55,12 @@ console.log('dependencies ' + declared.length);
 console.log('bundles      ' + bundles.length);
 
 /* 1. The write guard must not be blocked by permanent files. */
-const guard = {busy:profileWriterBusy(profileDir)||packageRunBusy(profileDir),reason:null};
-if (guard.busy && guard.reason === 'pnpm-lock') {
-  fail('write guard reports pnpm-lock busy; a permanent lock file must not block recovery');
-}
-const lockPath = path.join(nodeModulesDir, '.pnpm', 'lock.yaml');
-if (fs.existsSync(lockPath) && guard.reason === 'pnpm-lock') {
-  fail('a permanent .pnpm/lock.yaml is being treated as an active operation');
-}
-note('write guard: ' + (guard.busy ? 'busy (' + guard.reason + ')' : 'idle'));
+const guard = {busy:profileWriterBusy(profileDir)||packageRunBusy(profileDir)};
+note('write guard: ' + (guard.busy ? 'busy (native PID lock/run)' : 'idle'));
 
 /* 2. Leftover scan must never offer hoisted dependencies or runtime dirs. */
-const leftovers = findLeftovers({
-  nodeModulesDir,
-  dshHome,
-  profileDir,
-  installedNames: declared,
-  removedNames: [],
-});
+const quarantine = createQuarantine({profileDir,dshHome,stateDir:path.join(dshHome,'bingo')});
+const leftovers = quarantine.scan();
 const kinds = leftovers.reduce((acc, item) => {
   acc[item.kind] = (acc[item.kind] || 0) + 1;
   return acc;
@@ -92,22 +79,14 @@ for (const item of leftovers) {
     fail('runtime directory offered for deletion: ' + item.path);
   }
   if (item.kind === 'ignored' || item.kind === 'tmp') {
-    const parent = path.dirname(item.path);
-    if (path.resolve(parent) !== path.resolve(nodeModulesDir) && path.resolve(parent) !== path.resolve(nodeModulesDir, '.ignored')) {
+    const relative = path.relative(nodeModulesDir, item.path);
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
       fail('leftover outside node_modules: ' + item.path);
     }
   }
 }
 
-/* 3. Data directory candidates must never collide with runtime directories. */
-const RUNTIME = new Set(['bingo', 'profiles', 'sessions', 'storages', 'attachments', 'cache', 'electron', 'logs', 'dsh-runtimes', 'dsh-market', 'channel-pack']);
-for (const name of declared) {
-  for (const candidate of dataDirCandidates(name)) {
-    if (RUNTIME.has(candidate)) fail('package ' + name + ' maps to runtime directory ' + candidate);
-  }
-}
-
-/* 4. Nothing offered may be a symlink or junction. */
+/* 3. Nothing offered may be a symlink or junction. */
 for (const item of leftovers) {
   try {
     if (fs.lstatSync(item.path).isSymbolicLink()) fail('symlink offered for deletion: ' + item.path);
@@ -116,7 +95,7 @@ for (const item of leftovers) {
   }
 }
 
-/* 5. Every offered path must stay inside the profile or DSH home. */
+/* 4. Every offered path must stay inside the profile or DSH home. */
 const roots = [path.resolve(profileDir), path.resolve(dshHome)];
 for (const item of leftovers) {
   const inside = roots.some(root => {
@@ -125,11 +104,6 @@ for (const item of leftovers) {
   });
   if (!inside) fail('leftover outside the profile and DSH home: ' + item.path);
 }
-
-const quarantine=createQuarantine({profileDir,dshHome,stateDir:path.join(dshHome,'bingo')});
-const candidates=quarantine.scan();
-for(const candidate of candidates)if(fs.lstatSync(candidate.path).isSymbolicLink())fail('linked cleanup candidate');
-note('new quarantine scanner: '+candidates.length+' candidates (read-only; nothing moved)');
 
 for (const noteText of notes) console.log('ok   ' + noteText);
 if (problems.length) {

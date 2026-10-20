@@ -36,7 +36,7 @@ test('client implements the host contract', () => {
     'SNAP_THRESHOLD',
     '/recovery',
     '/rollback',
-    '/safe-mode',
+    '/rescue',
     '/cleanup',
     '/timeline',
     'msText',
