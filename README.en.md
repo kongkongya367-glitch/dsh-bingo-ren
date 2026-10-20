@@ -2,6 +2,10 @@
 
 **After you install a plugin, Bingo helps with the next step.**
 
+> Forgot to restart after installing? A dozen plugins and startup keeps getting slower? A new version broke something?
+>
+> Bingo remembers every step — and leaves you a way back.
+
 A local plugin companion for DeepSeek Harness: restart reminders, runtime checks, trial decisions and recovery.
 
 [中文](README.md) · [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)
@@ -45,10 +49,14 @@ The draggable button snaps to edges, remembers position and supports light/dark 
 
 ## Recovery boundaries
 
+<img src="assets/screenshot-cleanup.png?v=060" width="100%" alt="Quarantine: candidates, isolate and restore">
+
 - **Rollback:** last eight pre-change inventory checkpoints, delegated to the native manager. Plugin data remains. Version 0.6.0 fixes dropped enablement in newly recorded checkpoints and keeps disabled packages disabled through reinstall. Older unknown enablement is not invented: currently installed packages keep their current choice.
 - **Minimal boot:** back up package.json and profile YAML byte-for-byte, wait for the old processes and port to exit, then select only dsh-base, dsh-web-app and Bingo while temporarily neutralizing profile patches. Installed dependencies and data remain. Restore refuses unrelated configuration edits. Only the standard desktop profile layout is supported; global/CLI overlays and host faults are outside its scope.
 - **Independent rescue:** a Windows launcher is saved after a healthy load under the local Bingo state's `救援` directory. Close Harness completely before using it. It survives later package damage. Alternatively extract a release and run `node lib/rescue-cli.mjs enter --profile <absolute-profile> --closed --apply`; use `restore` to recover. `--without-bingo` excludes Bingo too; `status` is read-only. Backups may contain original configuration credentials and should remain private.
 - **Quarantine:** only reviewed candidates at least ten minutes old, dead-PID temporary package directories, pnpm ignored copies and exact-name data for recorded removals absent from other readable standard profiles. No dependency-tree pruning or link traversal. Same-volume moves can be restored unless the source is occupied. A second confirmation permanently deletes; quarantine alone does not free disk space. Candidate does not mean proven garbage.
+<img src="assets/screenshot-health.png?v=060" width="100%" alt="Startup trends: timing alongside plugin changes">
+
 - **Startup trends:** up to sixty local observations from host-process start to first Bingo UI connection. This is not total Electron startup. Minimal, hot-attached and late observations are separate from ordinary averages. Unknowns remain unknown. Changes alongside timing do not establish causality; no history is fabricated.
 
 Advanced recovery UI loads on demand. The new client requests leftover scanning only when quarantine is selected. Missing advanced UI does not prevent ordinary plugin viewing or restart controls.
