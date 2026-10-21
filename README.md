@@ -10,6 +10,8 @@ Bingo 是 DeepSeek Harness 的插件善后管家：提醒重启、检查运行�
 
 [安装](#安装) · [版本与下载](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases) · [English](README.en.md)
 
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+
 <img src="assets/readme-hero.png?v=060" width="100%" alt="Bingo：装完插件，下一步也有人接住">
 
 ## 打开就知道，接下来做什么
