@@ -2,7 +2,7 @@
 
 ## 未发布
 
-暂无。
+- 已收录进社区目录 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 的 **UI Enhancements** 分类（[PR #8273](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8273)），README 加回官方徽章。
 
 ## 0.6.0 — 2026-10-20
 
