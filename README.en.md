@@ -10,6 +10,8 @@ A local plugin companion for DeepSeek Harness: restart reminders, runtime checks
 
 [中文](README.md) · [Releases](https://github.com/kongkongya367-glitch/dsh-bingo-ren/releases)
 
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+
 <img src="assets/readme-hero.png?v=060" width="100%" alt="Bingo plugin companion">
 
 ## Four places, clear next actions
